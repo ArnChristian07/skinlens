@@ -113,7 +113,7 @@ export default function DoctorSetup() {
       router.replace("/doctor");
     } catch (err) {
       console.log(`[SkinLens][Auth] ${new Date().toISOString()} doctor-setup redeem failed:`, err);
-      setError(friendlyError(err, "Couldn't link your hospital. Please try again."));
+      setError(friendlyError(err, "Couldn't link your clinic. Please try again."));
     } finally {
       setLinking(false);
     }
@@ -164,7 +164,7 @@ export default function DoctorSetup() {
           </View>
           <ScreenHeader
             title="Finish doctor setup"
-            subtitle="Link your account to your hospital with the invite code your hospital gave you."
+            subtitle="Link your account to your clinic with the invite code your clinic gave you."
           />
 
           <View className="flex-col gap-2">
@@ -194,7 +194,7 @@ export default function DoctorSetup() {
 
           <View className="flex-col gap-2">
             <Text className="text-sm font-medium" style={{ color: theme.colors.ink }}>
-              Hospital Invite Code
+              Clinic Invite Code
             </Text>
             <View
               className="flex-row items-center bg-white px-4 py-3 gap-2"
@@ -229,14 +229,14 @@ export default function DoctorSetup() {
               </Text>
             ) : (
               <Text className="text-xs" style={{ color: theme.colors.muted }}>
-                Codes can expire or run out. Ask your hospital for a new one if this one
+                Codes can expire or run out. Ask your clinic for a new one if this one
                 doesn&apos;t work.
               </Text>
             )}
           </View>
 
           <PrimaryButton
-            label="Link Hospital"
+            label="Link Clinic"
             onPress={() => void handleLink()}
             loading={linking}
           />

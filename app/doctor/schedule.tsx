@@ -273,7 +273,7 @@ export default function DoctorSchedule() {
                             avatarUrl={patientAvatarFor(r, patientAvatars)}
                             detail={
                               r.status === "needs_reschedule"
-                                ? "Picking a new time"
+                                ? "Rebooking — choosing a new time"
                                 : t
                                   ? fmtTime(t)
                                   : "Any time"

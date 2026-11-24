@@ -58,7 +58,7 @@ export default function DoctorEditProfileScreen() {
         const prof = await getMyDoctorProfile();
         if (!alive) return;
         if (!prof) {
-          setError("Link your hospital first — then you can edit your profile.");
+          setError("Link your clinic first — then you can edit your profile.");
           return;
         }
         setDisplayName(prof.displayName);
@@ -193,12 +193,12 @@ export default function DoctorEditProfileScreen() {
 
           {clinicName ? (
             <FadeItem index={2}>
-              <Section title="Hospital">
+              <Section title="Clinic">
                 <Text className="text-sm" style={{ color: theme.colors.body }}>
                   {clinicName}
                 </Text>
                 <Text className="text-xs" style={{ color: theme.colors.faint }}>
-                  Your hospital is set by invite code. Use “Switch hospital” on the Account tab to
+                  Your clinic is set by invite code. Use “Switch clinic” on the Account tab to
                   change it.
                 </Text>
               </Section>

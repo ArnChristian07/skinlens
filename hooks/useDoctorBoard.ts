@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ToastAndroid } from "react-native";
 
 import { useDoctorQueue } from "@/hooks/useDoctorQueue";
@@ -8,6 +8,29 @@ import {
   type AppointmentRow,
   type AppointmentStatus,
 } from "@/lib/db/appointments";
+import { getPatientConcerns, type PatientConcern } from "@/lib/db/doctor-review";
+import { formatter } from "@/utils/formatter";
+
+/** "Acne, Pigmentation" from the stored "acne,pigmentation". */
+function concernText(raw: string | null | undefined): string | null {
+  const parts = (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && s !== "none" && s !== "normal");
+  return parts.length ? parts.map(formatter).join(", ") : null;
+}
+
+/** One line for a request: why the patient is coming, then what the AI saw if it differs. */
+export function reasonForVisit(c: PatientConcern | undefined): string | null {
+  if (!c) return null;
+  const concern = concernText(c.main_concerns);
+  const ai = concernText(c.latest_detection);
+  if (concern && ai && !concern.toLowerCase().includes(ai.toLowerCase())) {
+    return `${concern} · AI scan: ${ai}`;
+  }
+  if (concern) return concern;
+  return ai ? `AI scan: ${ai}` : null;
+}
 
 /** Modal title for a failed action, matched to the server's message. */
 function errorTitleFor(message: string): string {
@@ -43,6 +66,23 @@ export function useDoctorBoard() {
   const queue = useDoctorQueue();
   const { rows, applyStatus, refresh, doctor, colleagues, patientNames, patientAvatars } = queue;
   const [actionError, setActionError] = useState<string | null>(null);
+  const [concerns, setConcerns] = useState<Record<string, PatientConcern>>({});
+
+  // Reason for visit per patient — refetched only when the set of patients changes.
+  const patientKey = useMemo(
+    () => [...new Set(rows.map((r) => r.patient_id))].sort().join(","),
+    [rows],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const ids = patientKey ? patientKey.split(",") : [];
+    void getPatientConcerns(ids).then((map) => {
+      if (!cancelled) setConcerns(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [patientKey]);
 
   const handleAction = useCallback(
     async (id: string, status: AppointmentStatus, scheduledAt?: string) => {
@@ -84,6 +124,7 @@ export function useDoctorBoard() {
       appointment: a,
       patientName: patientDisplayFor(a, patientNames),
       patientAvatarUrl: patientAvatarFor(a, patientAvatars),
+      reason: reasonForVisit(concerns[a.patient_id]),
       assignedToOther:
         a.doctor_id && a.doctor_id !== doctor?.userId ? (colleagues[a.doctor_id] ?? null) : null,
       doctorId: doctor?.userId ?? null,
@@ -91,13 +132,14 @@ export function useDoctorBoard() {
       clinicRows: rows,
       onAction: handleAction,
     }),
-    [patientNames, patientAvatars, doctor, colleagues, rows, handleAction],
+    [patientNames, patientAvatars, concerns, doctor, colleagues, rows, handleAction],
   );
 
   return {
     ...queue,
     handleAction,
     cardProps,
+    reasonFor: (a: AppointmentRow) => reasonForVisit(concerns[a.patient_id]),
     actionError,
     actionErrorTitle: actionError ? errorTitleFor(actionError) : "",
     dismissActionError: () => setActionError(null),

@@ -7,6 +7,7 @@ import { Text } from "@/components/Text";
 import { UiModal } from "@/components/ui";
 import { EVIDENCE_LABEL, evidenceFor } from "@/data/derm-validation";
 import { theme } from "@/lib/theme";
+import { MAX_INGREDIENT_BADGES } from "@/utils/routine-generator";
 import type { DermIngredientValidation, DermValidationLevel } from "@/types/derm-validation";
 
 /** Dot colour per evidence level: strongest → darkest green, limited → amber. */
@@ -136,7 +137,8 @@ export function RecommendedProductBody({
         {product.product_type}
       </Text>
       <View className="flex-row flex-wrap gap-1.5 mt-1">
-        {product.recommended_ingredients.map((ingredient) => {
+        {/* Dermatologist guidance: only the 2 key ingredients (older saved results may list more). */}
+        {product.recommended_ingredients.slice(0, MAX_INGREDIENT_BADGES).map((ingredient) => {
           const v = evidenceFor(ingredient);
           return (
             <View

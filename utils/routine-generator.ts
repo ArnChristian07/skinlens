@@ -8,8 +8,8 @@ import {
 } from "./knowledge";
 import { safetyExclusions } from "./safety";
 
-/** Dermatologist guidance: keep product recommendations to the 2 most important. */
-export const MAX_RECOMMENDED_PRODUCTS = 2;
+/** Dermatologist guidance: each recommended product shows only its 2 key ingredients. */
+export const MAX_INGREDIENT_BADGES = 2;
 
 /** Actives that commonly irritate; recommending any of them adds a patch-test reminder. */
 const ACTIVE_INGREDIENTS = new Set([
@@ -335,26 +335,9 @@ export function buildRuleBasedRoutine(
     ? `Your ${safeSkinType} skin ${standing} (score ${score}/100). This routine works daily to ${benefit}`
     : `Your ${safeSkinType} skin ${standing}, with a focus on ${CONCERN_NOUN[concernKey] ?? safeConcern} (score ${score}/100). This routine works daily to ${benefit}`;
 
-  // Dermatologist guidance: recommend only the 2 products that matter most, so the user isn't
-  // overwhelmed. Priority: the product the dermatologist requires for this result (retinol for
-  // acne, sunscreen for a normal result), then the concern's treatment, then moisturizer,
-  // cleanser, sunscreen and an occasional mask/exfoliant to fill any gap.
-  const recommended = [
-    retinolP,
-    isMaintenance ? sunscreenP : null,
-    treatmentP,
-    moisturizerP,
-    cleanserP,
-    sunscreenP,
-    occasionalP,
-  ]
-    .filter((p): p is ProductEntry => !!p)
-    .filter((p, i, arr) => arr.findIndex((x) => x.product_type === p.product_type) === i)
-    .slice(0, MAX_RECOMMENDED_PRODUCTS);
-
   // Personalisation notes (skin type tuning, sensitivity exclusions) come
   // straight from selectForProfile — same deterministic input → output.
-  const recommendsActive = [cleanserP, treatmentP, moisturizerP, ...recommended].some((p) =>
+  const recommendsActive = [cleanserP, treatmentP, retinolP, moisturizerP, occasionalP].some((p) =>
     p?.recommended_ingredients.some((i) => ACTIVE_INGREDIENTS.has(i)),
   );
   const summaryTail = [
@@ -431,16 +414,27 @@ export function buildRuleBasedRoutine(
       ),
     ],
     // Normal (maintenance) results always include sunscreen, per dermatologist guidance.
-    recommended_products: recommended.map((p) => ({
-      product_type: p.product_type,
-      recommended_ingredients: p.recommended_ingredients,
-      reason:
-        p.role === "occasional"
-          ? `Use 1-2 times a week, not daily. ${joinIngredientReasons(p.recommended_ingredients)}`
-          : p === retinolP && p !== treatmentP
-            ? `Use at night only, 2-3 times a week at first, with daily sunscreen. ${joinIngredientReasons(p.recommended_ingredients)}`
-            : joinIngredientReasons(p.recommended_ingredients),
-    })),
+    recommended_products: [
+      cleanserP,
+      treatmentP,
+      retinolP,
+      moisturizerP,
+      isMaintenance ? sunscreenP : null,
+      occasionalP,
+    ]
+      .filter((p): p is ProductEntry => !!p)
+      .filter((p, i, arr) => arr.findIndex((x) => x.product_type === p.product_type) === i)
+      .map((p) => ({
+        product_type: p.product_type,
+        // Dermatologist guidance: show only each product's 2 key ingredients (listed lead-first).
+        recommended_ingredients: p.recommended_ingredients.slice(0, MAX_INGREDIENT_BADGES),
+        reason:
+          p.role === "occasional"
+            ? `Use 1-2 times a week, not daily. ${joinIngredientReasons(p.recommended_ingredients)}`
+            : p === retinolP && p !== treatmentP
+              ? `Use at night only, 2-3 times a week at first, with daily sunscreen. ${joinIngredientReasons(p.recommended_ingredients)}`
+              : joinIngredientReasons(p.recommended_ingredients),
+      })),
   };
   return parseAndValidateRoutine(JSON.stringify(fallback));
 }

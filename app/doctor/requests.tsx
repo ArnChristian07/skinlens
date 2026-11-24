@@ -90,7 +90,7 @@ export default function DoctorRequests() {
               options={[
                 { key: "all", label: "All", count: counts.all },
                 { key: "new", label: "New", count: counts.new },
-                { key: "awaiting", label: "Awaiting", count: counts.awaiting },
+                { key: "awaiting", label: "Rebooking", count: counts.awaiting },
               ]}
             />
             <View className="flex-row justify-end">

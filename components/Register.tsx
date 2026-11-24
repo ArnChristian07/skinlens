@@ -145,13 +145,13 @@ export default function Register() {
         return;
       }
       // 3. Session already issued (email confirmation disabled in the Supabase project):
-      // create the profile + link the hospital right away.
+      // create the profile + link the clinic right away.
       const result = await completeSignup(user);
       if (result.kind === "doctor-pending") {
         // The account already exists — keep it signed in and let the doctor retry with another
         // code instead of stranding it.
         ToastAndroid.show(
-          friendlyError(result.error, "Couldn't link your hospital yet."),
+          friendlyError(result.error, "Couldn't link your clinic yet."),
           ToastAndroid.LONG,
         );
         router.replace("/doctor-setup");
@@ -339,7 +339,7 @@ export default function Register() {
         {isDoctor ? (
           <View className="flex-col gap-2">
             <Text className="text-sm font-medium" style={{ color: theme.colors.ink }}>
-              Hospital Invite Code
+              Clinic Invite Code
             </Text>
             <View
               className="flex-row items-center bg-white rounded-2xl px-4 py-3 gap-2"
@@ -368,7 +368,7 @@ export default function Register() {
               />
             </View>
             <Text className="text-xs" style={{ color: theme.colors.muted }}>
-              Ask your hospital admin for a code (website Admin → Invite codes).
+              Ask your clinic admin for a code (website Admin → Invite codes).
             </Text>
           </View>
         ) : null}

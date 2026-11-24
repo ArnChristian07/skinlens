@@ -127,7 +127,7 @@ export default function DoctorProfileScreen() {
   const handleLink = useCallback(async () => {
     setLinkError(null);
     const code = linkCode.trim().toUpperCase();
-    // The "Switch hospital" modal has no name field, so keep the doctor's
+    // The "Switch clinic" modal has no name field, so keep the doctor's
     // existing name. The initial-link card still lets a new doctor type one.
     const name = (doctor?.displayName || linkName.trim() || "").trim();
     if (!code || !name) {
@@ -141,7 +141,7 @@ export default function DoctorProfileScreen() {
       setLinkCode("");
       setLoading(true);
       await load();
-      ToastAndroid.show("Hospital linked successfully", ToastAndroid.SHORT);
+      ToastAndroid.show("Clinic linked successfully", ToastAndroid.SHORT);
     } catch (err) {
       setLinkError(err instanceof Error ? err.message : "Invalid invite code.");
     } finally {
@@ -192,10 +192,10 @@ export default function DoctorProfileScreen() {
           setLinkOpen(false);
           setLinkError(null);
         }}
-        title="Link a different hospital"
-        message="Each doctor account belongs to one hospital. Enter a new invite code to move it."
+        title="Link a different clinic"
+        message="Each doctor account belongs to one clinic. Enter a new invite code to move it."
         actions={[
-          { label: "Link Hospital", loading: linkLoading, onPress: () => void handleLink() },
+          { label: "Link Clinic", loading: linkLoading, onPress: () => void handleLink() },
           {
             label: "Cancel",
             kind: "ghost",
@@ -339,10 +339,10 @@ export default function DoctorProfileScreen() {
                 <View className="flex-row items-center gap-3">
                   <View className="flex-1">
                     <Text className="font-bold text-[15px]" style={{ color: theme.colors.ink }}>
-                      Link your hospital
+                      Link your clinic
                     </Text>
                     <Text className="text-xs mt-0.5" style={{ color: theme.colors.muted }}>
-                      Enter the invite code from your hospital admin.
+                      Enter the invite code from your clinic admin.
                     </Text>
                   </View>
                 </View>
@@ -377,14 +377,14 @@ export default function DoctorProfileScreen() {
                   </Text>
                 ) : null}
                 <PrimaryButton
-                  label="Link Hospital"
+                  label="Link Clinic"
                   onPress={() => void handleLink()}
                   loading={linkLoading}
                 />
               </ClinicalCard>
             ) : (
               <ClinicalCard className="flex-col gap-3 mt-5">
-                <SectionTitle title="Hospital" meta="Verified clinic" />
+                <SectionTitle title="Clinic" meta="Verified" />
                 <View className="flex-row items-center gap-3">
                   <View className="flex-1">
                     <Text
@@ -399,7 +399,7 @@ export default function DoctorProfileScreen() {
                       style={{ color: theme.colors.muted }}
                       numberOfLines={1}
                     >
-                      {doctor ? "Invite-code verified" : "Link your hospital to receive requests"}
+                      {doctor ? "Invite-code verified" : "Link your clinic to receive requests"}
                     </Text>
                   </View>
                   <ShieldCheck size={18} color={theme.colors.primary} />
@@ -410,7 +410,7 @@ export default function DoctorProfileScreen() {
                   disabled={!hasCoords}
                   onPress={openClinicMap}
                   accessibilityRole={hasCoords ? "button" : undefined}
-                  accessibilityLabel={`Hospital location: ${doctor.clinicAddress || "Address not set"}`}
+                  accessibilityLabel={`Clinic location: ${doctor.clinicAddress || "Address not set"}`}
                 >
                   <MapPin size={18} color={theme.colors.primary} />
                   <View className="flex-1">
@@ -472,7 +472,7 @@ export default function DoctorProfileScreen() {
                 ) : null}
                 <View className="flex-row items-center gap-2 pt-1">
                   <View className="flex-1">
-                    <PrimaryButton label="Switch hospital" onPress={() => setLinkOpen(true)} />
+                    <PrimaryButton label="Switch clinic" onPress={() => setLinkOpen(true)} />
                   </View>
                 </View>
               </ClinicalCard>

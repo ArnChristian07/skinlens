@@ -118,6 +118,7 @@ export function DoctorAppointmentCard({
   appointment: a,
   patientName,
   patientAvatarUrl = null,
+  reason = null,
   busy = false,
   assignedToOther = null,
   doctorId = null,
@@ -131,6 +132,8 @@ export function DoctorAppointmentCard({
   patientName: string;
   /** Remote (http(s)) profile-photo URL — falls back to the initial. */
   patientAvatarUrl?: string | null;
+  /** Why the patient is coming: self-reported concern (+ AI detection when it differs). */
+  reason?: string | null;
   /** Parent-level busy flag (e.g. a different row is mid-action). */
   busy?: boolean;
   /** Name of the colleague this request is addressed to — only they can schedule it. */
@@ -214,7 +217,7 @@ export function DoctorAppointmentCard({
       : null
     : pending
       ? a.status === "needs_reschedule"
-        ? "Picking a new time"
+        ? "Rebooking — choosing a new time"
         : `${fmtVisit(a.preferred_time)}${requestedPassed ? " · passed" : ""}`
       : fmtVisit(a.scheduled_at ?? a.preferred_time);
   const closed = CLOSED_LABELS[a.status];
@@ -243,6 +246,16 @@ export function DoctorAppointmentCard({
                 numberOfLines={1}
               >
                 {when}
+              </Text>
+            ) : null}
+            {reason && active ? (
+              <Text
+                className="text-[13px] mt-0.5"
+                style={{ color: theme.colors.ink }}
+                numberOfLines={2}
+              >
+                <Text className="font-semibold">Concern: </Text>
+                {reason}
               </Text>
             ) : null}
           </View>
@@ -275,6 +288,12 @@ export function DoctorAppointmentCard({
         {/* Review panels — while the visit is still open */}
         {active ? (
           <View className="flex-col gap-2">
+            <Text
+              className="text-[11px] font-bold uppercase"
+              style={{ color: theme.colors.faint, letterSpacing: 0.6 }}
+            >
+              Clinical review{pending ? " — check before booking" : ""}
+            </Text>
             <DoctorResultValidation patientId={a.patient_id} />
             <DoctorProfileValidation patientId={a.patient_id} />
           </View>

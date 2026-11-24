@@ -54,7 +54,7 @@ export default function VerifyEmail() {
         ToastAndroid.show(`Doctor account linked to ${result.clinicName}!`, ToastAndroid.LONG);
       } else if (result.kind === "doctor-pending") {
         ToastAndroid.show(
-          friendlyError(result.error, "Couldn't link your hospital yet."),
+          friendlyError(result.error, "Couldn't link your clinic yet."),
           ToastAndroid.LONG,
         );
         router.replace("/doctor-setup");

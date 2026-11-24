@@ -27,7 +27,6 @@ import { exportSkinReport } from "@/utils/report";
 import { isPhotoBasedResult } from "@/utils/result-kind";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { SCORE_BANDS, bandFor, explainScore } from "@/utils/score-guide";
-import { describeDetection } from "@/utils/detection-score";
 
 // Server rows carry Postgres timestamps ("2026-11-07 10:00:00.123456+00") while offline rows use
 // toISOString(); normalise both so the sort never sees NaN.
@@ -90,148 +89,6 @@ const TREND_COPY: Record<Trend | "start", { headline: string; advice: string }> 
 
 function signed(n: number): string {
   return n === 0 ? "0" : `${n > 0 ? "+" : "−"}${Math.abs(n)}`;
-}
-
-const DAY_MS = 86_400_000;
-
-/** "5 days", "3 weeks", "2 months" — how long a stretch of time felt, not exact. */
-function spanText(ms: number): string {
-  const days = Math.round(ms / DAY_MS);
-  if (days < 1) return "";
-  if (days < 14) return `${days} day${days === 1 ? "" : "s"}`;
-  if (days < 60) return `${Math.round(days / 7)} weeks`;
-  const months = Math.round(days / 30);
-  return `${months} month${months === 1 ? "" : "s"}`;
-}
-
-/** "6 points better", "3 points lower", "About the same" — words instead of +6 / −3. */
-function changeWords(change: number): string {
-  const trend = trendOf(change);
-  if (trend === "same") return "About the same";
-  const n = Math.abs(change);
-  return `${n} point${n === 1 ? "" : "s"} ${trend === "up" ? "better" : "lower"}`;
-}
-
-/** One plain sentence telling the whole story from the first scan to the latest. */
-function progressStory(first: Result, latest: Result, scanCount: number): string {
-  const from = Math.round(first.healthscore);
-  const to = Math.round(latest.healthscore);
-  const fromBand = bandFor(from).label;
-  const toBand = bandFor(to).label;
-  const span = spanText(toTime(latest.created_at) - toTime(first.created_at));
-  const when = span ? `over ${span}` : "on the same day";
-  const bands = fromBand === toBand ? `still ${toBand}` : `from ${fromBand} to ${toBand}`;
-  return `In ${scanCount} scans ${when}, your score went from ${from} to ${to} (${bands}).`;
-}
-
-/** Plain-language note when the photo's main finding changed between the first and latest scan. */
-function findingChange(first: Result, latest: Result): string | null {
-  const a = first.detection_label?.trim().toLowerCase();
-  const b = latest.detection_label?.trim().toLowerCase();
-  if (!a || !b || a === b) return null;
-  return `Your first photo showed ${describeDetection(a)}; your latest shows ${describeDetection(b)}.`;
-}
-
-function nextStepCopy(latest: Result): string {
-  const days = Math.floor((Date.now() - toTime(latest.created_at)) / DAY_MS);
-  if (days >= 7) {
-    return `Your last scan was ${days} days ago. Take a new one to see how your skin is doing now.`;
-  }
-  return "Scan about once a week, in the same place and light, so your scans are easy to compare.";
-}
-
-function CompareStat({ title, change, since }: { title: string; change: number; since: string }) {
-  const trend = trendOf(change);
-  const t = TREND_STYLE[trend];
-  return (
-    <View className="flex-1 rounded-2xl px-3 py-2.5" style={{ backgroundColor: t.bg }}>
-      <Text className="text-xs" style={{ color: theme.colors.muted }}>
-        {title}
-      </Text>
-      <Text className="text-sm font-bold mt-0.5" style={{ color: t.color }}>
-        {changeWords(change)}
-      </Text>
-      <Text className="text-[11px] mt-0.5" style={{ color: theme.colors.faint }}>
-        {trend === "same" ? `Same as ${since}` : `${signed(change)} vs. ${since}`}
-      </Text>
-    </View>
-  );
-}
-
-const CHART_HEIGHT = 120;
-const CHART_MAX_SCANS = 8;
-
-/** Score per scan, oldest → newest. Tap a bar to read that scan in words. */
-function ScoreChart({ scans }: { scans: Result[] }) {
-  const [selected, setSelected] = useState(scans.length - 1);
-  const active = scans[Math.min(selected, scans.length - 1)];
-  const activeBand = bandFor(active.healthscore);
-  return (
-    <View className="mt-3">
-      <View className="flex-row items-end gap-1.5" style={{ height: CHART_HEIGHT + 20 }}>
-        {scans.map((r, i) => {
-          const score = Math.max(0, Math.min(100, Math.round(r.healthscore)));
-          const b = bandFor(score);
-          const isActive = r.id === active.id;
-          return (
-            <Pressable
-              key={r.id}
-              onPress={() => setSelected(i)}
-              className="flex-1 items-center justify-end h-full"
-              hitSlop={4}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={`${shortDate(r.created_at)}, score ${score}, ${b.label}`}
-            >
-              {isActive ? (
-                <Text className="text-xs font-bold mb-1" style={{ color: theme.colors.ink }}>
-                  {score}
-                </Text>
-              ) : null}
-              <View
-                style={{
-                  width: "100%",
-                  maxWidth: 32,
-                  height: Math.max(4, (score / 100) * CHART_HEIGHT),
-                  backgroundColor: b.color,
-                  opacity: isActive ? 1 : 0.4,
-                  borderTopLeftRadius: 4,
-                  borderTopRightRadius: 4,
-                }}
-              />
-            </Pressable>
-          );
-        })}
-      </View>
-      <View style={{ height: 1, backgroundColor: theme.colors.cardBorder }} />
-      <View className="flex-row justify-between mt-1">
-        <Text className="text-[11px]" style={{ color: theme.colors.faint }}>
-          {shortDate(scans[0].created_at)}
-        </Text>
-        <Text className="text-[11px]" style={{ color: theme.colors.faint }}>
-          {isToday(scans[scans.length - 1].created_at)
-            ? "Today"
-            : shortDate(scans[scans.length - 1].created_at)}
-        </Text>
-      </View>
-      <View className="mt-3 rounded-2xl px-3.5 py-2.5" style={{ backgroundColor: activeBand.soft }}>
-        <Text className="text-sm font-bold" style={{ color: theme.colors.ink }}>
-          {isToday(active.created_at) ? "Today" : shortDate(active.created_at)}
-          <Text style={{ fontWeight: "normal", color: theme.colors.body }}>
-            {` · score ${Math.round(active.healthscore)}, `}
-          </Text>
-          <Text style={{ color: activeBand.color }}>{activeBand.label}</Text>
-        </Text>
-        <Text className="text-xs mt-0.5 leading-4" style={{ color: theme.colors.body }}>
-          {activeBand.meaning}
-        </Text>
-      </View>
-      <Text className="text-xs mt-2 leading-4" style={{ color: theme.colors.faint }}>
-        Taller bars mean healthier skin. Tap a bar to see that scan. A change of {STEADY_RANGE}{" "}
-        points or less is normal — light and angle change each photo a little.
-      </Text>
-    </View>
-  );
 }
 
 // Lowest band first so the bar reads 0 → 100.
@@ -369,6 +226,19 @@ function ScoreGuide({ score }: { score: number }) {
   );
 }
 
+function ChangeChip({ change, since }: { change: number; since: string }) {
+  const trend = trendOf(change);
+  const t = TREND_STYLE[trend];
+  return (
+    <View className="rounded-full px-3 py-1.5 self-start" style={{ backgroundColor: t.bg }}>
+      <Text className="text-xs font-bold" style={{ color: t.color }}>
+        {trend === "same" ? "About the same" : `${signed(change)} points`}
+        <Text style={{ fontWeight: "normal" }}>{` since ${since}`}</Text>
+      </Text>
+    </View>
+  );
+}
+
 export default function Progress() {
   const router = useRouter();
   const focusTrigger = useFocusTrigger();
@@ -437,9 +307,6 @@ export default function Progress() {
   const first = newestFirst[newestFirst.length - 1] ?? null;
   const hasTwo = latest && first && latest.id !== first.id;
   const change = hasTwo ? Math.round(latest.healthscore - first.healthscore) : 0;
-  const previous = newestFirst[1] ?? null;
-  const lastChange = previous ? Math.round(latest.healthscore - previous.healthscore) : 0;
-  const chartScans = newestFirst.slice(0, CHART_MAX_SCANS).reverse();
 
   // Before photo: oldest scan (not the latest) whose image loads; fall back to the enrolment photo.
   const usable = (uri?: string | null) => !!uri && !failedImages.has(uri);
@@ -591,79 +458,16 @@ export default function Progress() {
                       {why}
                     </Text>
                   ) : null}
-                </View>
-
-                {hasTwo && previous ? (
-                  <View
-                    className="mt-4 pt-4"
-                    style={{ borderTopWidth: 1, borderTopColor: theme.colors.divider }}
-                  >
-                    <Text
-                      className="text-xs font-bold uppercase"
-                      style={{ color: theme.colors.faint }}
-                    >
-                      Your progress in short
-                    </Text>
-                    <Text className="text-sm mt-1.5 leading-5" style={{ color: theme.colors.body }}>
-                      {progressStory(first, latest, newestFirst.length)}
-                      {findingChange(first, latest) ? ` ${findingChange(first, latest)}` : ""}
-                    </Text>
-                    <View className="flex-row gap-2 mt-3">
-                      <CompareStat
-                        title="Since last scan"
-                        change={lastChange}
-                        since={shortDate(previous.created_at)}
-                      />
-                      {previous.id !== first.id ? (
-                        <CompareStat
-                          title="Since first scan"
-                          change={change}
-                          since={shortDate(first.created_at)}
-                        />
-                      ) : null}
+                  {hasTwo ? (
+                    <View className="mt-4">
+                      <ChangeChip change={change} since={shortDate(first.created_at)} />
                     </View>
-                  </View>
-                ) : null}
-
-                <View
-                  className="mt-4 pt-4 flex-row items-center gap-3"
-                  style={{ borderTopWidth: 1, borderTopColor: theme.colors.divider }}
-                >
-                  <View className="flex-1">
-                    <Text
-                      className="text-xs font-bold uppercase"
-                      style={{ color: theme.colors.faint }}
-                    >
-                      What to do next
-                    </Text>
-                    <Text className="text-sm mt-1 leading-5" style={{ color: theme.colors.body }}>
-                      {nextStepCopy(latest)}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => router.push("/(tabs)/scan")}
-                    className="rounded-full px-3.5 py-2 active:opacity-70"
-                    style={{ backgroundColor: theme.colors.primary }}
-                    accessibilityRole="button"
-                  >
-                    <Text className="text-sm font-bold" style={{ color: "#FFFFFF" }}>
-                      Scan now
-                    </Text>
-                  </Pressable>
+                  ) : null}
                 </View>
               </ClinicalCard>
             </FadeItem>
 
-            {hasTwo && (
-              <FadeItem index={2}>
-                <ClinicalCard className="mt-4">
-                  <SectionTitle title="Your score over time" meta="Tap a bar" />
-                  <ScoreChart scans={chartScans} />
-                </ClinicalCard>
-              </FadeItem>
-            )}
-
-            <FadeItem index={3}>
+            <FadeItem index={2}>
               <ClinicalCard className="mt-4">
                 <SectionTitle title="What your score means" meta="Tap a range" />
                 <ScoreGuide score={latest.healthscore} />
@@ -671,7 +475,7 @@ export default function Progress() {
             </FadeItem>
 
             {hasTwo && (
-              <FadeItem index={4}>
+              <FadeItem index={3}>
                 <ClinicalCard className="mt-4">
                   <SectionTitle title="Before and now" />
                   <View className="flex-row gap-3 mt-3">
@@ -719,9 +523,9 @@ export default function Progress() {
               </FadeItem>
             )}
 
-            <FadeItem index={5}>
+            <FadeItem index={4}>
               <ClinicalCard className="mt-4">
-                <SectionTitle title="Recent scans" meta="Change from the scan before" />
+                <SectionTitle title="Scan history" meta="vs. previous scan" />
                 <View className="mt-2">
                   {newestFirst.slice(0, 5).map((r, i, arr) => {
                     const b = bandFor(r.healthscore);
@@ -785,9 +589,7 @@ export default function Progress() {
                               className="text-xs font-bold"
                               style={{ color: TREND_STYLE[trendOf(delta)].color }}
                             >
-                              {trendOf(delta) === "same"
-                                ? "Same"
-                                : `${signed(delta)} ${trendOf(delta) === "up" ? "better" : "lower"}`}
+                              {signed(delta)}
                             </Text>
                           </View>
                         )}

@@ -18,7 +18,7 @@ import { requestSync } from "@/components/SyncManager";
 import { uploadImageToCloudinary } from "@/utils/cloudinary";
 import { isOnlineNow } from "@/utils/network";
 import { getHealthScoreResponse } from "@/utils/healthscore";
-import { MAX_RECOMMENDED_PRODUCTS, generateRoutine } from "@/utils/routine-generator";
+import { generateRoutine } from "@/utils/routine-generator";
 import { parseScoreParam } from "@/utils/questionnaire-score";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { UrgentCareModal } from "@/components/UrgentCareModal";
@@ -514,12 +514,12 @@ export default function ScanResults() {
                     Commonly Recommended
                   </Text>
                   <Text className="text-xs leading-4" style={{ color: theme.colors.muted }}>
-                    The {MAX_RECOMMENDED_PRODUCTS} product types a dermatologist would start with
-                    for this concern. Skin reacts differently from person to person — patch-test
-                    first, and tap &quot;This irritated my skin&quot; if one doesn&apos;t suit you.
+                    Product types often used for this concern. Skin reacts differently from person
+                    to person — patch-test first, and tap &quot;This irritated my skin&quot; if one
+                    doesn&apos;t suit you.
                   </Text>
                 </View>
-                {resultData.recommendations.slice(0, MAX_RECOMMENDED_PRODUCTS).map((product) => (
+                {resultData.recommendations.map((product) => (
                   <View
                     key={product.product_type}
                     className="gap-1.5 pb-3"

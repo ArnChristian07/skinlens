@@ -1,5 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { buildRuleBasedRoutine, generateRoutine } from "@/utils/routine-generator";
+import {
+  MAX_INGREDIENT_BADGES,
+  buildRuleBasedRoutine,
+  generateRoutine,
+} from "@/utils/routine-generator";
 
 type Step = { step: number; product_type: string; instruction: string; reason: string };
 type Routine = {
@@ -127,8 +131,7 @@ describe("dermatologist rules for recommended products", () => {
   });
 });
 
-describe("recommended products are limited to the 2 most important (dermatologist guidance)", () => {
-  const types = (r: Routine) => r.recommended_products.map((p) => p.product_type);
+describe("each recommended product shows at most 2 ingredient badges (dermatologist guidance)", () => {
   const CASES: [string, string][] = [
     ["oily", "acne"],
     ["combination", "acne"],
@@ -140,35 +143,24 @@ describe("recommended products are limited to the 2 most important (dermatologis
     ["normal", "none"],
   ];
 
-  it.each(CASES)("%s skin / %s gets exactly 2 distinct products", (skin, concern) => {
-    const t = types(parse(buildRuleBasedRoutine(skin, concern, 60)));
-    expect(t).toHaveLength(2);
-    expect(new Set(t).size).toBe(2);
+  it.each(CASES)("%s skin / %s: 1-2 ingredients per product", (skin, concern) => {
+    const r = parse(buildRuleBasedRoutine(skin, concern, 60));
+    for (const p of r.recommended_products) {
+      expect(p.recommended_ingredients.length).toBeGreaterThanOrEqual(1);
+      expect(p.recommended_ingredients.length).toBeLessThanOrEqual(MAX_INGREDIENT_BADGES);
+    }
   });
 
-  it("acne keeps retinol in the 2", () => {
-    const r = parse(buildRuleBasedRoutine("oily", "acne", 60));
-    expect(r.recommended_products[0].recommended_ingredients).toContain("Retinol");
-  });
-
-  it("a normal result keeps sunscreen in the 2", () => {
-    expect(types(parse(buildRuleBasedRoutine("normal", "normal", 90)))[0]).toMatch(
-      /sunscreen|spf/i,
+  it("keeps each product's lead active (e.g. Benzoyl Peroxide, Retinol)", () => {
+    const all = parse(buildRuleBasedRoutine("oily", "acne", 60)).recommended_products.flatMap(
+      (p) => p.recommended_ingredients,
     );
+    expect(all).toEqual(expect.arrayContaining(["Benzoyl Peroxide", "Retinol"]));
   });
 
-  it("still gives 2 products when retinol is excluded (pregnancy)", async () => {
-    const r = parse(
-      await generateRoutine({
-        skin_type: "oily",
-        main_concern: "acne",
-        sleep_quality: "",
-        stress_level: "",
-        water_intake: "",
-        health_score: 60,
-        pregnancy_status: "yes",
-      }),
-    );
-    expect(r.recommended_products).toHaveLength(2);
+  it("does not limit the number of products", () => {
+    expect(
+      parse(buildRuleBasedRoutine("oily", "acne", 60)).recommended_products.length,
+    ).toBeGreaterThan(2);
   });
 });

@@ -95,7 +95,7 @@ export const DOCTOR_TUTORIAL_STEPS: CoachStep[] = [
     target: "doctor.requests",
     href: "/doctor/requests",
     title: "Requests",
-    body: "Review each patient's scan and profile, then Schedule visit to book them on your clinic's open slots, or Decline.",
+    body: "Each request shows the patient's concern. Open the AI scan to see the photo and agree or disagree with the finding, check their self-reported profile, then Schedule visit or Decline.",
   },
   {
     target: "doctor.schedule",
@@ -113,7 +113,7 @@ export const DOCTOR_TUTORIAL_STEPS: CoachStep[] = [
     target: "doctor.profile.card",
     href: "/doctor/profile",
     title: "Your Account",
-    body: "Your doctor profile, linked hospital and notification settings — and you can replay this tour from this screen anytime.",
+    body: "Your doctor profile, linked clinic and notification settings — and you can replay this tour from this screen anytime.",
   },
 ];
 

@@ -276,7 +276,7 @@ export default function DoctorToday() {
                     : todays.length === 0
                       ? "No visits today"
                       : `${todays.length} ${todays.length === 1 ? "visit" : "visits"} today${
-                          todayDone > 0 ? ` · ${todayDone} to close` : ""
+                          todayDone > 0 ? ` · ${todayDone} to mark done` : ""
                         }`}
                 </Text>
                 <Text className="text-xs font-bold text-white">Open schedule</Text>
@@ -374,11 +374,16 @@ export default function DoctorToday() {
                           name={patientDisplayFor(r, patientNames)}
                           avatarUrl={patientAvatarFor(r, patientAvatars)}
                           detail={
-                            r.status === "needs_reschedule"
-                              ? "Picking a new time"
-                              : t
-                                ? `Wants ${formatSlotDay(t)} · ${fmtTime(t)}`
-                                : "Any time"
+                            [
+                              board.reasonFor(r),
+                              r.status === "needs_reschedule"
+                                ? "Rebooking — choosing a new time"
+                                : t
+                                  ? `Wants ${formatSlotDay(t)} · ${fmtTime(t)}`
+                                  : "Any time",
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
                           }
                           meta={relativeAgo(r.created_at)}
                           metaTone="warning"
@@ -613,7 +618,7 @@ function AgendaRow({
         {name}
       </Text>
       <Text className="text-[11px] font-bold" style={{ color: metaColor }}>
-        {live ? "Now" : past ? "To close" : fmtCountdown(t, now)}
+        {live ? "Now" : past ? "Mark done" : fmtCountdown(t, now)}
       </Text>
     </Pressable>
   );

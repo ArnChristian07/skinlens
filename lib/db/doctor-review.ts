@@ -14,6 +14,19 @@ export type PatientResultSummary = {
   doctor_notes: string | null;
   validated_at: string | null;
   created_at: string;
+  /** Remote scan photo (migration 0020); null when never uploaded or before 0020. */
+  image_url?: string | null;
+  /** How the photo was taken, e.g. "scan_camera" / "scan_gallery". */
+  source_type?: string | null;
+  /** The patient answered "doesn't match my skin" for this detection (0020). */
+  patient_disputed?: boolean | null;
+};
+
+/** One patient's reason for visiting, for request cards (migration 0020). */
+export type PatientConcern = {
+  patient_id: string;
+  main_concerns: string | null;
+  latest_detection: string | null;
 };
 
 const MIGRATION_HINT =
@@ -26,8 +39,8 @@ function rpcError(error: { message: string }): Error {
 
 /**
  * Reads one patient's newest AI result. The RPC checks the caller is an active doctor whose clinic
- * holds an active appointment for that patient, and returns no image / survey data — just what the
- * review panel needs.
+ * holds an active appointment for that patient. Returns the remote scan photo (0020) but no survey
+ * data — just what the review panel needs.
  */
 export async function getPatientLatestResult(
   patientId: string,
@@ -54,4 +67,24 @@ export async function validateAiResult(
     p_notes: notes,
   });
   if (error) throw rpcError(error);
+}
+
+/**
+ * Batched reason-for-visit for the doctor's queue. Best-effort: returns {} when the 0020 RPC isn't
+ * deployed yet, so the cards just fall back to no concern line.
+ */
+export async function getPatientConcerns(
+  patientIds: string[],
+): Promise<Record<string, PatientConcern>> {
+  if (patientIds.length === 0) return {};
+  const { data, error } = await supabase.rpc("get_patient_concerns", { p_ids: patientIds });
+  if (error) {
+    if (!isMissingFunctionError(error)) console.warn("[doctor-review] concerns:", error.message);
+    return {};
+  }
+  const out: Record<string, PatientConcern> = {};
+  for (const row of (data ?? []) as PatientConcern[]) {
+    if (row?.patient_id) out[row.patient_id] = row;
+  }
+  return out;
 }

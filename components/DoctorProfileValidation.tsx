@@ -35,7 +35,7 @@ function show(value: string | null | undefined): string {
 function statusLabel(v: ProfileValidation | null): string {
   if (!v) return "Not reviewed";
   if (!v.is_current) return "Updated since review";
-  return v.status === "confirmed" ? "Profile confirmed" : "Needs follow-up";
+  return v.status === "confirmed" ? "Profile looks right" : "Needs correction";
 }
 
 function statusTone(v: ProfileValidation | null): "primary" | "neutral" | "warning" {
@@ -125,7 +125,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
         }}
       >
         <Text className="flex-1 text-[13px] font-semibold" style={{ color: theme.colors.primary }}>
-          {open ? "Hide profile review" : "Review patient profile"}
+          {open ? "Hide patient profile" : "Patient-reported profile & history"}
         </Text>
         <ChevronDown
           size={14}
@@ -162,7 +162,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
 
               {v ? (
                 <Text className="text-xs leading-5" style={{ color: theme.colors.muted }}>
-                  {v.status === "confirmed" ? "Confirmed" : "Flagged for follow-up"}
+                  {v.status === "confirmed" ? "Marked as looking right" : "Marked as needing correction"}
                   {v.validator_name ? ` by ${v.validator_name}` : ""}
                   {v.validated_at ? ` on ${fmtWhen(v.validated_at)}` : ""}.
                   {!v.is_current
@@ -263,7 +263,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                   onPress={() => void submit("confirmed")}
                   disabled={saving}
                   accessibilityRole="button"
-                  accessibilityLabel="Confirm patient profile"
+                  accessibilityLabel="Mark patient profile as looking right"
                   className="flex-1 flex-row items-center justify-center gap-1.5 rounded-full py-2.5 active:opacity-80"
                   style={{
                     backgroundColor: theme.colors.primary,
@@ -271,14 +271,14 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                   }}
                 >
                   <Text className="text-[13px] font-bold text-white">
-                    {saving ? "Saving…" : "Confirm profile"}
+                    {saving ? "Saving…" : "Looks right"}
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={() => void submit("needs_review")}
                   disabled={saving}
                   accessibilityRole="button"
-                  accessibilityLabel="Flag patient profile for follow-up"
+                  accessibilityLabel="Mark patient profile as needing correction"
                   className="flex-1 flex-row items-center justify-center gap-1.5 rounded-full bg-white py-2.5 active:opacity-80"
                   style={{
                     borderWidth: 1,
@@ -287,7 +287,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                   }}
                 >
                   <Text className="text-[13px] font-bold" style={{ color: theme.colors.danger }}>
-                    Follow-up
+                    Needs correction
                   </Text>
                 </Pressable>
               </View>
