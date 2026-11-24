@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, TextInput, ToastAndroid, View } from "react-native";
+import { ActivityIndicator, TextInput, ToastAndroid, View } from "react-native";
 import { Text } from "@/components/Text";
 import { useRouter } from "expo-router";
 import { CircleAlert } from "lucide-react-native";
@@ -12,13 +12,8 @@ import { BackHeader, Notice, PrimaryButton } from "@/components/ui";
 import { cardShadow, theme } from "@/lib/theme";
 import { getMyDoctorProfile, updateMyDoctorProfile } from "@/lib/db/appointments";
 
-const SPECIALTY_OPTIONS = [
-  "Dermatology",
-  "Cosmetic Dermatology",
-  "Pediatric Dermatology",
-  "Dermatopathology",
-  "General Practice",
-];
+// Every doctor on SkinLens is a dermatologist — specialty isn't editable.
+const SPECIALTY = "Dermatology";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -48,7 +43,6 @@ export default function DoctorEditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [specialty, setSpecialty] = useState("");
   const [clinicName, setClinicName] = useState("");
 
   useEffect(() => {
@@ -62,7 +56,6 @@ export default function DoctorEditProfileScreen() {
           return;
         }
         setDisplayName(prof.displayName);
-        setSpecialty(prof.specialty);
         setClinicName(prof.clinicName);
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : "Couldn't load your profile.");
@@ -83,7 +76,7 @@ export default function DoctorEditProfileScreen() {
     }
     setSaving(true);
     try {
-      await updateMyDoctorProfile({ displayName, specialty });
+      await updateMyDoctorProfile({ displayName, specialty: SPECIALTY });
       ToastAndroid.show("Profile updated", ToastAndroid.SHORT);
       router.back();
     } catch (err) {
@@ -142,52 +135,6 @@ export default function DoctorEditProfileScreen() {
                 </View>
               </View>
 
-              <View className="gap-1.5">
-                <FieldLabel label="Specialty" />
-                <View className="flex-row flex-wrap gap-2">
-                  {SPECIALTY_OPTIONS.map((opt) => {
-                    const selected = specialty === opt;
-                    return (
-                      <Pressable
-                        key={opt}
-                        onPress={() => setSpecialty(opt)}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}
-                        className="rounded-full px-4 py-2.5 border active:opacity-80"
-                        style={
-                          selected
-                            ? {
-                                backgroundColor: theme.colors.primary,
-                                borderColor: theme.colors.primary,
-                              }
-                            : { backgroundColor: "#FFFFFF", borderColor: theme.colors.cardBorder }
-                        }
-                      >
-                        <Text
-                          className="text-sm font-semibold"
-                          style={{ color: selected ? "#FFFFFF" : theme.colors.body }}
-                        >
-                          {opt}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <View
-                  className="bg-white rounded-2xl px-4 mt-1"
-                  style={{ borderWidth: 1, borderColor: theme.colors.cardBorder }}
-                >
-                  <TextInput
-                    value={specialty}
-                    onChangeText={setSpecialty}
-                    placeholder="Or type your specialty"
-                    placeholderTextColor={theme.colors.faint}
-                    maxLength={80}
-                    className="py-3"
-                    style={{ color: theme.colors.ink }}
-                  />
-                </View>
-              </View>
             </Section>
           </FadeItem>
 

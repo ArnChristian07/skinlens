@@ -267,14 +267,14 @@ export default function DoctorProfileScreen() {
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={{
-                          height: 80,
-                          width: 80,
+                          height: 56,
+                          width: 56,
                           borderRadius: 999,
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        <Text className="text-3xl font-bold text-white">
+                        <Text className="text-2xl font-bold text-white">
                           {initialOf(doctor?.displayName ?? email)}
                         </Text>
                       </LinearGradient>
@@ -298,7 +298,7 @@ export default function DoctorProfileScreen() {
                       </View>
                     </View>
                     <View className="mt-2 self-start">
-                      <Pill label={doctor?.specialty ?? "Dermatology"} />
+                      <Pill label="Dermatology" />
                     </View>
                   </LinearGradient>
                 </View>
