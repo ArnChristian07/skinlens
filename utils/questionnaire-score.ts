@@ -1,7 +1,7 @@
 export type ScoredOption = { value: string; points: number };
 export type ScoredQuestion = {
   id: string;
-  /** false = context only (e.g. "does this match?", "compared with last week"), never scored. */
+  /** false = context only (e.g. "does this match?", "compared with 11 weeks ago"), never scored. */
   scored?: boolean;
   options?: ScoredOption[];
 };

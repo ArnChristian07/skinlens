@@ -18,7 +18,7 @@ import { requestSync } from "@/components/SyncManager";
 import { uploadImageToCloudinary } from "@/utils/cloudinary";
 import { isOnlineNow } from "@/utils/network";
 import { getHealthScoreResponse } from "@/utils/healthscore";
-import { generateRoutine } from "@/utils/routine-generator";
+import { MAX_RECOMMENDED_PRODUCTS, generateRoutine } from "@/utils/routine-generator";
 import { parseScoreParam } from "@/utils/questionnaire-score";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { UrgentCareModal } from "@/components/UrgentCareModal";
@@ -28,7 +28,6 @@ import {
   computeOverallScore,
   parseSeverityParam,
   prettyLabel,
-  type SeverityLevel,
 } from "@/utils/detection-score";
 
 const detectionDescriptions: Record<string, string> = {
@@ -39,12 +38,6 @@ const detectionDescriptions: Record<string, string> = {
   oily: "Our AI detected that your skin tends to be oily. Excess oil production can lead to shine and clogged pores. A balanced routine can help control oil without over-drying.",
   normal:
     "No significant skin conditions were detected. Your skin appears healthy. A good maintenance routine will help keep it that way.",
-};
-
-const SEVERITY_STYLE: Record<SeverityLevel, { color: string; bg: string }> = {
-  mild: { color: "#214E36", bg: "#DCFCE7" },
-  moderate: { color: "#B45309", bg: "#FEF3C7" },
-  severe: { color: "#DC2626", bg: "#FEE2E2" },
 };
 
 const DISPUTED_COPY =
@@ -73,7 +66,8 @@ export default function ScanResults() {
   }>();
 
   const detectionLabel = label ?? "normal";
-  // Model's severity rating (acne/eczema only); null for other labels or older models.
+  // Model's severity rating (acne/eczema only); null for other labels or older models. Not shown on
+  // this screen (dermatologist feedback) — it still grades the score and the urgent-care check.
   const modelSeverity = useMemo(
     () => parseSeverityParam(severity, detectionLabel),
     [severity, detectionLabel],
@@ -374,21 +368,6 @@ export default function ScanResults() {
             <Text className="text-xl font-bold text-gray-800 capitalize">
               {prettyLabel(detectionLabel)}
             </Text>
-            {/* Photo severity (acne/eczema only); hidden when the user disputed the finding. */}
-            {modelSeverity && !disputed && (
-              <View
-                className="self-center rounded-full px-4 py-1.5"
-                style={{ backgroundColor: SEVERITY_STYLE[modelSeverity.label].bg }}
-                accessibilityLabel={`Severity: ${modelSeverity.label}`}
-              >
-                <Text
-                  className="text-sm font-bold"
-                  style={{ color: SEVERITY_STYLE[modelSeverity.label].color }}
-                >
-                  {prettyLabel(modelSeverity.label)} severity
-                </Text>
-              </View>
-            )}
             {conf > 0 && (
               <Text className="text-sm" style={{ color: theme.colors.muted }}>
                 Confidence: {(conf * 100).toFixed(1)}%
@@ -535,12 +514,12 @@ export default function ScanResults() {
                     Commonly Recommended
                   </Text>
                   <Text className="text-xs leading-4" style={{ color: theme.colors.muted }}>
-                    Product types often used for this concern. Skin reacts differently from person
-                    to person — patch-test first, and tap &quot;This irritated my skin&quot; if one
-                    doesn&apos;t suit you.
+                    The {MAX_RECOMMENDED_PRODUCTS} product types a dermatologist would start with
+                    for this concern. Skin reacts differently from person to person — patch-test
+                    first, and tap &quot;This irritated my skin&quot; if one doesn&apos;t suit you.
                   </Text>
                 </View>
-                {resultData.recommendations.map((product) => (
+                {resultData.recommendations.slice(0, MAX_RECOMMENDED_PRODUCTS).map((product) => (
                   <View
                     key={product.product_type}
                     className="gap-1.5 pb-3"

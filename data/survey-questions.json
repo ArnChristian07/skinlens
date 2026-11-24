@@ -12,7 +12,7 @@
     },
     {
       "id": "severity",
-      "label": "In the past 7 days, how would you rate your acne?",
+      "label": "In the past 11 weeks, how would you rate your acne?",
       "replacedByModelSeverity": true,
       "options": [
         { "value": "almost_clear", "label": "Almost clear (1–2 small spots)", "points": 4, "icon": "eye-outline" },
@@ -23,7 +23,7 @@
     },
     {
       "id": "extent",
-      "label": "In the past 7 days, how much of your face had breakouts?",
+      "label": "In the past 11 weeks, how much of your face had breakouts?",
       "replacedByModelSeverity": true,
       "options": [
         { "value": "one_area", "label": "One area", "points": 3, "icon": "person-outline" },
@@ -33,7 +33,7 @@
     },
     {
       "id": "pain",
-      "label": "In the past 7 days, have any spots been painful or tender?",
+      "label": "In the past 11 weeks, have any spots been painful or tender?",
       "options": [
         { "value": "no", "label": "No", "points": 3, "icon": "hand-left-outline" },
         { "value": "a_little", "label": "A little, when touched", "points": 2, "icon": "hand-left-outline" },
@@ -42,7 +42,7 @@
     },
     {
       "id": "trend",
-      "label": "Compared with 7 days ago, your acne is…",
+      "label": "Compared with 11 weeks ago, your acne is…",
       "scored": false,
       "options": [
         { "value": "better", "label": "Better", "points": 0, "icon": "trending-up-outline" },
@@ -65,7 +65,7 @@
     },
     {
       "id": "itch_level",
-      "label": "In the past 7 days, how itchy has the affected skin been?",
+      "label": "In the past 11 weeks, how itchy has the affected skin been?",
       "options": [
         { "value": "not_itchy", "label": "Not itchy", "points": 4, "icon": "hand-left-outline" },
         { "value": "mild", "label": "Mildly itchy", "points": 3, "icon": "hand-left-outline" },
@@ -75,12 +75,12 @@
     },
     {
       "id": "flaking_days",
-      "label": "In the past 7 days, on how many days was the skin dry, flaking or cracked?",
+      "label": "In the past 11 weeks, how often was the skin dry, flaking or cracked?",
       "options": [
-        { "value": "no_days", "label": "No days", "points": 4, "icon": "calendar-outline" },
-        { "value": "1_2_days", "label": "1–2 days", "points": 3, "icon": "calendar-outline" },
-        { "value": "3_4_days", "label": "3–4 days", "points": 2, "icon": "calendar-outline" },
-        { "value": "5_7_days", "label": "5–7 days", "points": 1, "icon": "calendar-outline" }
+        { "value": "no_days", "label": "Never", "points": 4, "icon": "calendar-outline" },
+        { "value": "1_2_days", "label": "Rarely (a few days)", "points": 3, "icon": "calendar-outline" },
+        { "value": "3_4_days", "label": "Often (most weeks)", "points": 2, "icon": "calendar-outline" },
+        { "value": "5_7_days", "label": "Almost every day", "points": 1, "icon": "calendar-outline" }
       ]
     },
     {
@@ -95,7 +95,7 @@
     },
     {
       "id": "trend",
-      "label": "Compared with 7 days ago, your eczema is…",
+      "label": "Compared with 11 weeks ago, your eczema is…",
       "scored": false,
       "options": [
         { "value": "better", "label": "Better", "points": 0, "icon": "trending-up-outline" },
@@ -118,7 +118,7 @@
     },
     {
       "id": "severity",
-      "label": "In the past 7 days, how dry has your skin felt?",
+      "label": "In the past 11 weeks, how dry has your skin felt?",
       "options": [
         { "value": "mild", "label": "Mild (slightly tight)", "points": 3, "icon": "water-outline" },
         { "value": "moderate", "label": "Moderate (visible flaking)", "points": 2, "icon": "water-outline" },
@@ -127,7 +127,7 @@
     },
     {
       "id": "extent",
-      "label": "In the past 7 days, how much of your face felt dry?",
+      "label": "In the past 11 weeks, how much of your face felt dry?",
       "options": [
         { "value": "one_area", "label": "One area", "points": 3, "icon": "person-outline" },
         { "value": "several_areas", "label": "Two or more areas", "points": 2, "icon": "person-outline" },
@@ -136,7 +136,7 @@
     },
     {
       "id": "trend",
-      "label": "Compared with 7 days ago, your dryness is…",
+      "label": "Compared with 11 weeks ago, your dryness is…",
       "scored": false,
       "options": [
         { "value": "better", "label": "Better", "points": 0, "icon": "trending-up-outline" },
@@ -159,7 +159,7 @@
     },
     {
       "id": "severity",
-      "label": "In the past 7 days, how oily has your skin been by midday?",
+      "label": "In the past 11 weeks, how oily has your skin been by midday?",
       "options": [
         { "value": "mild", "label": "Mild (slight shine)", "points": 3, "icon": "flask-outline" },
         { "value": "moderate", "label": "Moderate (noticeable shine)", "points": 2, "icon": "flask-outline" },
@@ -177,7 +177,7 @@
     },
     {
       "id": "breakouts",
-      "label": "In the past 7 days, how many new breakouts did you get?",
+      "label": "In the past 11 weeks, how many new breakouts did you get?",
       "options": [
         { "value": "none", "label": "None", "points": 3, "icon": "checkmark-circle-outline" },
         { "value": "a_few", "label": "A few", "points": 2, "icon": "alert-circle-outline" },
@@ -186,7 +186,7 @@
     },
     {
       "id": "trend",
-      "label": "Compared with 7 days ago, your oiliness is…",
+      "label": "Compared with 11 weeks ago, your oiliness is…",
       "scored": false,
       "options": [
         { "value": "better", "label": "Better", "points": 0, "icon": "trending-up-outline" },
@@ -209,7 +209,7 @@
     },
     {
       "id": "satisfaction",
-      "label": "In the past 7 days, how satisfied have you been with your skin?",
+      "label": "In the past 11 weeks, how satisfied have you been with your skin?",
       "options": [
         { "value": "very_satisfied", "label": "Very satisfied", "points": 5, "icon": "happy-outline" },
         { "value": "satisfied", "label": "Satisfied", "points": 4, "icon": "happy-outline" },
@@ -219,8 +219,26 @@
       ]
     },
     {
-      "id": "flare_ups",
-      "label": "In the past 7 days, how often did you notice breakouts, flaking or redness?",
+      "id": "flare_breakouts",
+      "label": "In the past 11 weeks, how often did you notice breakouts?",
+      "options": [
+        { "value": "never", "label": "Never", "points": 3, "icon": "checkmark-circle-outline" },
+        { "value": "sometimes", "label": "Once or twice", "points": 2, "icon": "alert-circle-outline" },
+        { "value": "often", "label": "Often", "points": 1, "icon": "alert-circle-outline" }
+      ]
+    },
+    {
+      "id": "flare_flaking",
+      "label": "In the past 11 weeks, how often did you notice flaking?",
+      "options": [
+        { "value": "never", "label": "Never", "points": 3, "icon": "checkmark-circle-outline" },
+        { "value": "sometimes", "label": "Once or twice", "points": 2, "icon": "alert-circle-outline" },
+        { "value": "often", "label": "Often", "points": 1, "icon": "alert-circle-outline" }
+      ]
+    },
+    {
+      "id": "flare_redness",
+      "label": "In the past 11 weeks, how often did you notice redness?",
       "options": [
         { "value": "never", "label": "Never", "points": 3, "icon": "checkmark-circle-outline" },
         { "value": "sometimes", "label": "Once or twice", "points": 2, "icon": "alert-circle-outline" },

@@ -2,11 +2,11 @@ import * as Notifications from "expo-notifications";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
+    // shouldShowAlert is deprecated in SDK 57 — banner + list replace it.
     shouldShowBanner: true,
     shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
   }),
 });
 
@@ -18,45 +18,45 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return status === "granted";
 }
 
+async function cancelByType(type: string) {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of scheduled) {
+    if (n.content.data?.type === type) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier);
+    }
+  }
+}
+
+/**
+ * Every Monday at 10:00 local time. A calendar trigger (not TIME_INTERVAL) repeats on its own and
+ * re-arming it on launch doesn't push the next one a full week away.
+ */
 export async function scheduleWeeklyScanReminder() {
   const granted = await requestNotificationPermissions();
   if (!granted) return;
 
-  // Cancel existing scan reminders first
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  for (const n of scheduled) {
-    if (n.content.data?.type === "scan_reminder") {
-      await Notifications.cancelScheduledNotificationAsync(n.identifier);
-    }
-  }
-
-  // Schedule every 7 days at 10:00 AM
+  await cancelByType("scan_reminder");
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Weekly scan due",
-      body: "No scan recorded this week. Take a photo to compare.",
+      body: "Take a photo under similar lighting to compare with last week.",
       data: { type: "scan_reminder" },
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 7 * 24 * 60 * 60, // 7 days
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 2, // 1 = Sunday … 7 = Saturday
+      hour: 10,
+      minute: 0,
     },
   });
 }
 
+/** Every day at 08:00 local time. */
 export async function scheduleDailySkincareTip() {
   const granted = await requestNotificationPermissions();
   if (!granted) return;
 
-  // Cancel existing daily tips first
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  for (const n of scheduled) {
-    if (n.content.data?.type === "daily_tip") {
-      await Notifications.cancelScheduledNotificationAsync(n.identifier);
-    }
-  }
-
-  // Schedule every day at 8:00 AM
+  await cancelByType("daily_tip");
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Skin tip for today",
@@ -64,8 +64,9 @@ export async function scheduleDailySkincareTip() {
       data: { type: "daily_tip" },
     },
     trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 24 * 60 * 60, // 24 hours
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 8,
+      minute: 0,
     },
   });
 }

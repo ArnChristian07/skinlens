@@ -506,33 +506,37 @@ async function processSyncQueueInner(sessionValidated = false): Promise<void> {
           break;
         }
         case "notifications": {
+          // Shapes written by lib/db/notifications.ts. Entries without an id are the
+          // "all" variants, bounded by `before` so rows that arrived later are untouched.
           const payload = entry.payload as {
-            id: string;
+            id?: string;
             user_id: string;
-            type: string;
-            title: string;
-            message: string;
-            read: boolean;
-            created_at: string;
+            type?: string;
+            title?: string;
+            message?: string;
+            read?: boolean;
+            created_at?: string;
+            before?: string;
           };
           if (entry.operation === "delete") {
-            if (payload.id) {
-              const { error } = await supabase.from("notifications").delete().eq("id", payload.id);
-              if (error) throw error;
-            } else {
-              const { error } = await supabase
-                .from("notifications")
-                .delete()
-                .eq("user_id", payload.user_id);
-              if (error) throw error;
-            }
+            let q = supabase.from("notifications").delete().eq("user_id", payload.user_id);
+            q = payload.id ? q.eq("id", payload.id) : q.lte("created_at", payload.before ?? "1970-01-01T00:00:00Z");
+            const { error } = await q;
+            if (error) throw error;
           } else if (entry.operation === "update") {
-            const { error } = await supabase
+            // Only `read` is client-writable (column grant in 0019).
+            let q = supabase
               .from("notifications")
-              .update({ read: payload.read })
-              .eq("id", payload.id);
+              .update({ read: true })
+              .eq("user_id", payload.user_id);
+            q = payload.id
+              ? q.eq("id", payload.id)
+              : q.eq("read", false).lte("created_at", payload.before ?? "1970-01-01T00:00:00Z");
+            const { error } = await q;
             if (error) throw error;
           } else {
+            // ignoreDuplicates → ON CONFLICT DO NOTHING: a replay must not reset `read`
+            // (and a plain upsert would need UPDATE rights on every column).
             const { error } = await supabase.from("notifications").upsert(
               {
                 id: payload.id,
@@ -540,10 +544,10 @@ async function processSyncQueueInner(sessionValidated = false): Promise<void> {
                 type: payload.type,
                 title: payload.title,
                 message: payload.message,
-                read: payload.read,
+                read: payload.read ?? false,
                 created_at: payload.created_at,
               },
-              { onConflict: "id", ignoreDuplicates: false },
+              { onConflict: "id", ignoreDuplicates: true },
             );
             if (error) throw error;
           }

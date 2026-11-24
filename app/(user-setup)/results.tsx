@@ -24,6 +24,7 @@ import {
 } from "@/utils/setup-score";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { RecommendedProductBody } from "@/components/RecommendedProduct";
+import { MAX_RECOMMENDED_PRODUCTS } from "@/utils/routine-generator";
 
 export default function Results() {
   const [resultData, setResultData] = useState<Result | null>(null);
@@ -195,7 +196,7 @@ export default function Results() {
                   >
                     {resultData.description}
                   </Text>
-                  {resultData.recommendations.map((product) => (
+                  {resultData.recommendations.slice(0, MAX_RECOMMENDED_PRODUCTS).map((product) => (
                     <View
                       key={product.product_type}
                       className="gap-1.5 pb-3"

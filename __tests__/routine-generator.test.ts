@@ -80,3 +80,95 @@ describe("generateRoutine", () => {
     );
   });
 });
+
+describe("dermatologist rules for recommended products", () => {
+  const ingredients = (r: Routine) =>
+    r.recommended_products.flatMap((p) => p.recommended_ingredients);
+
+  it.each(["oily", "dry", "combination", "sensitive", "normal"])(
+    "always recommends retinol for acne (%s skin)",
+    (skin) => {
+      expect(ingredients(parse(buildRuleBasedRoutine(skin, "acne", 70)))).toContain("Retinol");
+    },
+  );
+
+  it.each(["dry", "eczema"])("does not force retinol onto %s results", (c) => {
+    expect(ingredients(parse(buildRuleBasedRoutine("dry", c, 70)))).not.toContain("Retinol");
+  });
+
+  it("never stacks retinol with another retinoid", () => {
+    for (const c of ["acne"]) {
+      expect(ingredients(parse(buildRuleBasedRoutine("oily", c, 40)))).not.toContain("Adapalene");
+    }
+  });
+
+  it("drops retinol when pregnancy or a logged sensitivity excludes it", async () => {
+    const pregnant = parse(
+      await generateRoutine({
+        skin_type: "oily",
+        main_concern: "acne",
+        sleep_quality: "",
+        stress_level: "",
+        water_intake: "",
+        health_score: 60,
+        pregnancy_status: "yes",
+      }),
+    );
+    expect(ingredients(pregnant)).not.toContain("Retinol");
+    const sensitive = parse(
+      buildRuleBasedRoutine("oily", "acne", 60, undefined, { avoid_ingredients: ["Retinol"] }),
+    );
+    expect(ingredients(sensitive)).not.toContain("Retinol");
+  });
+
+  it("always recommends sunscreen for a normal result", () => {
+    const r = parse(buildRuleBasedRoutine("normal", "normal", 90));
+    expect(r.recommended_products.some((p) => /sunscreen|spf/i.test(p.product_type))).toBe(true);
+  });
+});
+
+describe("recommended products are limited to the 2 most important (dermatologist guidance)", () => {
+  const types = (r: Routine) => r.recommended_products.map((p) => p.product_type);
+  const CASES: [string, string][] = [
+    ["oily", "acne"],
+    ["combination", "acne"],
+    ["dry", "dry"],
+    ["dry", "eczema"],
+    ["oily", "oily"],
+    ["sensitive", "redness"],
+    ["normal", "normal"],
+    ["normal", "none"],
+  ];
+
+  it.each(CASES)("%s skin / %s gets exactly 2 distinct products", (skin, concern) => {
+    const t = types(parse(buildRuleBasedRoutine(skin, concern, 60)));
+    expect(t).toHaveLength(2);
+    expect(new Set(t).size).toBe(2);
+  });
+
+  it("acne keeps retinol in the 2", () => {
+    const r = parse(buildRuleBasedRoutine("oily", "acne", 60));
+    expect(r.recommended_products[0].recommended_ingredients).toContain("Retinol");
+  });
+
+  it("a normal result keeps sunscreen in the 2", () => {
+    expect(types(parse(buildRuleBasedRoutine("normal", "normal", 90)))[0]).toMatch(
+      /sunscreen|spf/i,
+    );
+  });
+
+  it("still gives 2 products when retinol is excluded (pregnancy)", async () => {
+    const r = parse(
+      await generateRoutine({
+        skin_type: "oily",
+        main_concern: "acne",
+        sleep_quality: "",
+        stress_level: "",
+        water_intake: "",
+        health_score: 60,
+        pregnancy_status: "yes",
+      }),
+    );
+    expect(r.recommended_products).toHaveLength(2);
+  });
+});

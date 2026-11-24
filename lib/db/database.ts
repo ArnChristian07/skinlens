@@ -193,8 +193,12 @@ async function openAndMigrate(useNewConnection: boolean): Promise<SQLite.SQLiteD
     }
   }
 
-  // Clean stuck notification entries from sync queue (string IDs can't sync to bigint column)
-  await db.runAsync(`DELETE FROM sync_queue WHERE table_name = 'notifications'`);
+  // One-time cleanup: notification entries queued before 0019 (text ids vs the old bigint column)
+  // can never sync. Newer entries are left alone — they are how offline reads/deletes reach Supabase.
+  if ((await db.getFirstAsync<{ user_version: number }>(`PRAGMA user_version`))!.user_version < 1) {
+    await db.runAsync(`DELETE FROM sync_queue WHERE table_name = 'notifications'`);
+    await db.execAsync(`PRAGMA user_version = 1`);
+  }
 
   return db;
 }

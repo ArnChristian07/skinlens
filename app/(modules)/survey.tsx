@@ -70,7 +70,7 @@ export default function Survey() {
   const modelSeverity = parseSeverityParam(severity, detectionLabel);
   const allQuestions = detectionQuestions[detectionLabel] ?? detectionQuestions.normal;
   // Questions about what the photo already shows (how bad, how much of the face) are dropped when
-  // the model graded severity; symptoms and history (itch, pain, last 7 days) are still asked.
+  // the model graded severity; symptoms and history (itch, pain, last 11 weeks) are still asked.
   const questions = modelSeverity
     ? allQuestions.filter((q) => !q.replacedByModelSeverity)
     : allQuestions;

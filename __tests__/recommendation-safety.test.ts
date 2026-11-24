@@ -194,12 +194,21 @@ describe("after-scan survey questions", () => {
     }
   });
 
-  it("severity questions use a 7-day window", () => {
+  it("survey questions use an 11-week window (dermatologist guidance), never 7 days", () => {
     for (const qs of Object.values(SURVEYS)) {
       for (const q of qs.filter((x) => ["severity", "itch_level", "flaking_days"].includes(x.id))) {
-        expect(q.label).toMatch(/past 7 days/i);
+        expect(q.label).toMatch(/past 11 weeks/i);
       }
+      for (const q of qs) expect(q.label).not.toMatch(/7 days/i);
     }
+  });
+
+  it("normal survey asks about breakouts, flaking and redness separately", () => {
+    const ids = SURVEYS.normal.map((q) => q.id);
+    expect(ids).toEqual(
+      expect.arrayContaining(["flare_breakouts", "flare_flaking", "flare_redness"]),
+    );
+    expect(ids).not.toContain("flare_ups");
   });
 
   it("urgent-care answers still exist", () => {

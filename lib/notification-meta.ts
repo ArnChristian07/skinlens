@@ -2,6 +2,7 @@ import type { Href } from "expo-router";
 import {
   Bell,
   CalendarCheck,
+  CalendarClock,
   CalendarPlus,
   CalendarX,
   Camera,
@@ -48,12 +49,27 @@ export function notificationTypeLabel(type: string): string {
   return words ? words[0].toUpperCase() + words.slice(1) : "Notification";
 }
 
-/** Appointment-reply ids are `apptrepl-<appointmentId>-<status>`. */
+export type AppointmentReplyKind =
+  | "scheduled"
+  | "declined"
+  | "completed"
+  | "cancelled"
+  | "bumped"
+  | "moved";
+
+/**
+ * Appointment-reply ids (written by the 0019 `appointments_notify` trigger) are
+ * `apptrepl-<appointmentUuid>-<kind>` with an optional `-<suffix>` for kinds that can repeat
+ * (bumped / moved carry the epoch of the time involved).
+ */
 export function parseAppointmentReplyId(
   id: string,
-): { appointmentId: string; status: string } | null {
-  const m = /^apptrepl-(.+)-(scheduled|declined|completed)$/.exec(id);
-  return m ? { appointmentId: m[1], status: m[2] } : null;
+): { appointmentId: string; status: AppointmentReplyKind } | null {
+  const m =
+    /^apptrepl-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-(scheduled|declined|completed|cancelled|bumped|moved)(?:-.*)?$/i.exec(
+      id,
+    );
+  return m ? { appointmentId: m[1], status: m[2] as AppointmentReplyKind } : null;
 }
 
 export function getNotificationMeta(n: Pick<Notification, "id" | "type">): NotificationMeta {
@@ -82,21 +98,32 @@ export function getNotificationMeta(n: Pick<Notification, "id" | "type">): Notif
     case "appointment_reply": {
       const status = parseAppointmentReplyId(n.id)?.status;
       const byStatus =
-        status === "declined"
+        status === "declined" || status === "cancelled"
           ? { icon: CalendarX, color: "#DC2626", tint: "#FEF2F2" }
           : status === "completed"
             ? { icon: CircleCheck, color: "#0F766E", tint: "#E6F6F4" }
-            : { icon: CalendarCheck, color: "#1D4ED8", tint: "#EAF1FE" };
+            : status === "bumped"
+              ? { icon: CalendarClock, color: "#B45309", tint: "#FEF3C7" }
+              : { icon: CalendarCheck, color: "#1D4ED8", tint: "#EAF1FE" };
+      const context: Record<AppointmentReplyKind, string> = {
+        declined:
+          "The clinic couldn't take this request. You can book another clinic from the map.",
+        cancelled:
+          "The clinic cancelled this confirmed visit. You can book a new time from the map.",
+        completed:
+          "Your doctor closed this visit. Keep scanning weekly so your next visit has fresh data.",
+        bumped:
+          "Another patient's visit was confirmed for the time you asked for. Pick a new time so the clinic can review your request.",
+        moved:
+          "Your clinic changed the time of your visit. Arrive a few minutes early and bring your SkinLens report.",
+        scheduled:
+          "Your clinic replied to your visit request. Arrive a few minutes early and bring your SkinLens report.",
+      };
       return {
         label,
         ...byStatus,
         cta: { label: "Open appointments", href: "/(modules)/appointments" },
-        context:
-          status === "declined"
-            ? "The clinic couldn't take this request. You can book another clinic from the map."
-            : status === "completed"
-              ? "Your doctor closed this visit. Keep scanning weekly so your next visit has fresh data."
-              : "Your clinic replied to your visit request. Arrive a few minutes early and bring your SkinLens report.",
+        context: context[status ?? "scheduled"],
       };
     }
     case "appointment_request":

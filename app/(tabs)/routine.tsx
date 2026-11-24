@@ -19,6 +19,7 @@ import { getLatestRoutine, getTodayProgress, toggleStep as toggleStepDb } from "
 import type { Period, Routine, RoutineStep } from "@/types/schema";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { RecommendedProductBody } from "@/components/RecommendedProduct";
+import { MAX_RECOMMENDED_PRODUCTS } from "@/utils/routine-generator";
 
 type IconComponent = typeof Sun;
 
@@ -366,17 +367,19 @@ export default function Routines() {
                     patch-test first and tap &quot;This irritated my skin&quot; if one doesn&apos;t
                     suit you.
                   </Text>
-                  {routine.recommended_products.map((product, index) => (
-                    <FadeItem key={index} index={Math.min(9 + index, 11)}>
-                      <ClinicalCard key={index} className="gap-1.5">
-                        <RecommendedProductBody
-                          product={product}
-                          onReported={() => void fetchRoutine()}
-                          showEvidenceLink={false}
-                        />
-                      </ClinicalCard>
-                    </FadeItem>
-                  ))}
+                  {routine.recommended_products
+                    .slice(0, MAX_RECOMMENDED_PRODUCTS)
+                    .map((product, index) => (
+                      <FadeItem key={index} index={Math.min(9 + index, 11)}>
+                        <ClinicalCard key={index} className="gap-1.5">
+                          <RecommendedProductBody
+                            product={product}
+                            onReported={() => void fetchRoutine()}
+                            showEvidenceLink={false}
+                          />
+                        </ClinicalCard>
+                      </FadeItem>
+                    ))}
                 </View>
               )}
             </FadeItem>
