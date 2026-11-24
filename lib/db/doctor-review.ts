@@ -27,6 +27,9 @@ export type PatientConcern = {
   patient_id: string;
   main_concerns: string | null;
   latest_detection: string | null;
+  /** Verdict on the newest scan: pending / confirmed / needs_review. */
+  latest_validation?: string | null;
+  latest_doctor_notes?: string | null;
 };
 
 const MIGRATION_HINT =

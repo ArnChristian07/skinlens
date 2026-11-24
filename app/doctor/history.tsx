@@ -5,12 +5,12 @@ import { Search } from "lucide-react-native";
 import { FadeItem } from "@/components/FadeItem";
 import { CoachTarget } from "@/components/TutorialCoach";
 import { useCoachScroller } from "@/hooks/useCoachScroller";
-import { DoctorAppointmentCard } from "@/components/DoctorAppointmentCard";
+import { PatientRow, fmtTime, visitStatusPill } from "@/components/DoctorUi";
 import Skeleton from "@/components/Skeleton";
 import { StyledSafeAreaView as SafeAreaView } from "@/components/StyledSafeAreaView";
 import { ScreenGradient } from "@/components/ScreenGradient";
 import { ClinicalCard, EmptyState, ScreenHeader, SectionTitle } from "@/components/ui";
-import { useDoctorQueue } from "@/hooks/useDoctorQueue";
+import { useDoctorBoard } from "@/hooks/useDoctorBoard";
 import { theme } from "@/lib/theme";
 import { TAB_BAR_CLEARANCE } from "@/lib/tabs-config";
 import { patientAvatarFor, patientDisplayFor } from "@/lib/db/appointments";
@@ -20,8 +20,8 @@ function formatDate(date: Date): string {
 }
 
 export default function DoctorHistory() {
-  const { doctor, rows, patientNames, patientAvatars, loading, refreshing, error, refresh } =
-    useDoctorQueue();
+  const board = useDoctorBoard();
+  const { doctor, rows, patientNames, patientAvatars, loading, refreshing, error, refresh } = board;
   // Tab screens keep their scroll offset between visits, so the tutorial
   // needs to scroll its target back into view.
   const scrollRef = useRef<ScrollView>(null);
@@ -51,7 +51,13 @@ export default function DoctorHistory() {
     const patientName = patientDisplayFor(r, patientNames).toLowerCase();
     const status = r.status.toLowerCase();
     const clinicName = doctor?.clinicName?.toLowerCase() ?? "";
-    return patientName.includes(query) || status.includes(query) || clinicName.includes(query);
+    const concern = (board.reasonFor(r) ?? "").toLowerCase();
+    return (
+      patientName.includes(query) ||
+      status.includes(query) ||
+      clinicName.includes(query) ||
+      concern.includes(query)
+    );
   };
 
   const filteredHistory = history.filter((r) => matchesQuickFilter(r) && matchesSearch(r));
@@ -132,7 +138,7 @@ export default function DoctorHistory() {
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search by patient name, status..."
+                placeholder="Search by patient, concern or status"
                 placeholderTextColor={theme.colors.faint}
                 className="flex-1 text-base"
                 style={{ color: theme.colors.ink }}
@@ -196,7 +202,7 @@ export default function DoctorHistory() {
                 title="No history found"
                 copy={
                   quickFilter !== "all"
-                    ? "No past visits match this filter. Tap 'All' to see everything."
+                    ? "No past visits match this filter. Tap 'All Visits' to see everything."
                     : searchQuery
                       ? "No visits match your search. Try a different term."
                       : "Completed, cancelled, and declined visits will appear here."
@@ -212,18 +218,25 @@ export default function DoctorHistory() {
                   title={label}
                   meta={`${groupedHistory[label].length} visit${groupedHistory[label].length !== 1 ? "s" : ""}`}
                 />
-                <View className="flex-col gap-3">
-                  {groupedHistory[label].map((a) => (
-                    <DoctorAppointmentCard
-                      key={a.id}
-                      appointment={a}
-                      patientName={patientDisplayFor(a, patientNames)}
-                      patientAvatarUrl={patientAvatarFor(a, patientAvatars)}
-                      compact
-                      onAction={async () => {}}
-                    />
-                  ))}
-                </View>
+                <ClinicalCard style={{ paddingVertical: 4 }}>
+                  {groupedHistory[label].map((a, i) => {
+                    const iso = a.scheduled_at ?? a.preferred_time;
+                    return (
+                      <PatientRow
+                        key={a.id}
+                        name={patientDisplayFor(a, patientNames)}
+                        avatarUrl={patientAvatarFor(a, patientAvatars)}
+                        concern={board.reasonFor(a)}
+                        detail={iso ? fmtTime(new Date(iso)) : "No time set"}
+                        note={a.status === "completed" ? board.verdictFor(a) : null}
+                        pill={visitStatusPill(a.status)}
+                        chevron
+                        divider={i > 0}
+                        onPress={() => board.openPatient(a)}
+                      />
+                    );
+                  })}
+                </ClinicalCard>
               </View>
             ))}
           </>

@@ -134,7 +134,7 @@ export function DoctorWeekCalendar({
               }}
             >
               <Text
-                className="text-[10px] font-bold uppercase"
+                className="text-[12px] font-bold uppercase"
                 style={{
                   letterSpacing: 0.4,
                   color: selected ? "rgba(255,255,255,0.8)" : theme.colors.muted,
@@ -151,7 +151,7 @@ export function DoctorWeekCalendar({
               <View className="flex-row items-center gap-0.5 mt-1" style={{ height: 14 }}>
                 {count > 0 ? (
                   <Text
-                    className="text-[11px] font-semibold"
+                    className="text-[12px] font-semibold"
                     style={{ color: selected ? "rgba(255,255,255,0.85)" : theme.colors.primary }}
                   >
                     {count}

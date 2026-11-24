@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ToastAndroid } from "react-native";
+import { useRouter } from "expo-router";
 
 import { useDoctorQueue } from "@/hooks/useDoctorQueue";
 import {
@@ -30,6 +31,20 @@ export function reasonForVisit(c: PatientConcern | undefined): string | null {
   }
   if (concern) return concern;
   return ai ? `AI scan: ${ai}` : null;
+}
+
+/** "Scan: you agreed" style line for closed visits; null until the scan has a verdict. */
+export function verdictLine(c: PatientConcern | undefined): string | null {
+  if (!c?.latest_validation || c.latest_validation === "pending") return null;
+  const verdict =
+    c.latest_validation === "confirmed" ? "Scan: doctor agreed" : "Scan: doctor disagreed";
+  const note = (c.latest_doctor_notes ?? "").trim();
+  return note ? `${verdict} — “${note}”` : verdict;
+}
+
+/** Opens the full patient screen for one appointment. */
+export function patientHref(appointmentId: string): string {
+  return `/(modules)/doctor-patient?id=${encodeURIComponent(appointmentId)}`;
 }
 
 /** Modal title for a failed action, matched to the server's message. */
@@ -64,6 +79,7 @@ export function parseIso(iso: string | null): Date | null {
  */
 export function useDoctorBoard() {
   const queue = useDoctorQueue();
+  const router = useRouter();
   const { rows, applyStatus, refresh, doctor, colleagues, patientNames, patientAvatars } = queue;
   const [actionError, setActionError] = useState<string | null>(null);
   const [concerns, setConcerns] = useState<Record<string, PatientConcern>>({});
@@ -140,6 +156,8 @@ export function useDoctorBoard() {
     handleAction,
     cardProps,
     reasonFor: (a: AppointmentRow) => reasonForVisit(concerns[a.patient_id]),
+    verdictFor: (a: AppointmentRow) => verdictLine(concerns[a.patient_id]),
+    openPatient: (a: AppointmentRow) => router.push(patientHref(a.id) as never),
     actionError,
     actionErrorTitle: actionError ? errorTitleFor(actionError) : "",
     dismissActionError: () => setActionError(null),

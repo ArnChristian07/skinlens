@@ -1,12 +1,16 @@
-import { Image, Pressable, View } from "react-native";
+import { Image, Pressable, useWindowDimensions, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ChevronRight } from "lucide-react-native";
 
 import { Text } from "@/components/Text";
 import Skeleton from "@/components/Skeleton";
-import { ClinicalCard } from "@/components/ui";
+import { ClinicalCard, Pill } from "@/components/ui";
 import { theme } from "@/lib/theme";
-import { isRemoteImageUrl } from "@/lib/db/appointments";
+import {
+  isRemoteImageUrl,
+  type AppointmentRow,
+  type AppointmentStatus,
+} from "@/lib/db/appointments";
 
 function initialOf(name: string): string {
   const clean = name.trim().replace(/^@/, "");
@@ -115,59 +119,111 @@ export function Segmented<K extends string>({
   );
 }
 
-/** One tappable line: avatar, name + detail, trailing meta. */
+/**
+ * One tappable patient line used by every doctor list: avatar, name, the reason for the visit,
+ * a time/status detail and a trailing meta or status pill. Tapping opens the patient screen.
+ */
 export function PatientRow({
   name,
   avatarUrl,
+  concern,
   detail,
+  note,
   meta,
   metaTone = "faint",
+  pill,
   chevron = false,
   onPress,
   divider = false,
+  selected = false,
 }: {
   name: string;
   avatarUrl?: string | null;
+  /** Why the patient is coming (self-reported concern / AI finding). */
+  concern?: string | null;
   detail: string;
+  /** Extra line under the detail, e.g. the doctor's verdict on the scan (History). */
+  note?: string | null;
   meta?: string;
-  /** Colour of the trailing meta (Home uses amber for waiting requests). */
-  metaTone?: "faint" | "warning";
-  /** Trailing arrow (Home's style). */
+  /** Colour of the trailing meta (amber for waiting requests). */
+  metaTone?: "faint" | "warning" | "primary";
+  /** Trailing status chip, e.g. "Completed". Shown instead of nothing when there's no meta. */
+  pill?: { label: string; tone: "primary" | "neutral" | "warning" };
   chevron?: boolean;
   onPress?: () => void;
   divider?: boolean;
+  /** Highlighted (the open patient in the tablet two-pane layout). */
+  selected?: boolean;
 }) {
+  const metaColor =
+    metaTone === "warning"
+      ? theme.colors.warningText
+      : metaTone === "primary"
+        ? theme.colors.primary
+        : theme.colors.faint;
   return (
     <Pressable
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={`${name}, ${detail}${meta ? `, ${meta}` : ""}`}
+      accessibilityState={selected ? { selected: true } : undefined}
+      accessibilityLabel={[name, concern, detail, meta ?? pill?.label].filter(Boolean).join(", ")}
       className="flex-row items-center gap-3 py-3 active:opacity-70"
-      style={divider ? { borderTopWidth: 1, borderTopColor: theme.colors.divider } : undefined}
+      style={{
+        ...(divider ? { borderTopWidth: 1, borderTopColor: theme.colors.divider } : null),
+        ...(selected
+          ? {
+              backgroundColor: theme.colors.primarySoft,
+              marginHorizontal: -10,
+              paddingHorizontal: 10,
+              borderRadius: 14,
+            }
+          : null),
+      }}
     >
-      <PatientAvatar name={name} url={avatarUrl} size={38} />
+      <PatientAvatar name={name} url={avatarUrl} size={42} />
       <View className="flex-1">
         <Text
-          className="text-[14px] font-bold"
+          className="text-[15px] font-bold"
           style={{ color: theme.colors.ink }}
           numberOfLines={1}
         >
           {name}
         </Text>
-        <Text className="text-xs mt-0.5" style={{ color: theme.colors.muted }} numberOfLines={1}>
+        {concern ? (
+          <Text
+            className="text-[13px] mt-0.5"
+            style={{ color: theme.colors.body }}
+            numberOfLines={1}
+          >
+            {concern}
+          </Text>
+        ) : null}
+        <Text
+          className="text-[13px] mt-0.5"
+          style={{ color: theme.colors.muted }}
+          numberOfLines={1}
+        >
           {detail}
         </Text>
+        {note ? (
+          <Text
+            className="text-[13px] mt-0.5"
+            style={{ color: theme.colors.primaryDeep }}
+            numberOfLines={2}
+          >
+            {note}
+          </Text>
+        ) : null}
       </View>
       {meta ? (
-        <Text
-          className={metaTone === "warning" ? "text-[11px] font-bold" : "text-xs"}
-          style={{ color: metaTone === "warning" ? theme.colors.warningText : theme.colors.faint }}
-        >
+        <Text className="text-[12px] font-bold" style={{ color: metaColor }}>
           {meta}
         </Text>
+      ) : pill ? (
+        <Pill label={pill.label} tone={pill.tone} />
       ) : null}
-      {chevron && onPress ? <ChevronRight size={16} color={theme.colors.faint} /> : null}
+      {chevron && onPress ? <ChevronRight size={18} color={theme.colors.faint} /> : null}
     </Pressable>
   );
 }
@@ -197,7 +253,7 @@ export function SectionHeader({
           className="rounded-full px-2 py-0.5"
           style={{ backgroundColor: theme.colors.primarySoft }}
         >
-          <Text className="text-[11px] font-bold" style={{ color: theme.colors.primaryDeep }}>
+          <Text className="text-[12px] font-bold" style={{ color: theme.colors.primaryDeep }}>
             {count}
           </Text>
         </View>
@@ -228,24 +284,20 @@ export function SectionHeader({
   );
 }
 
-export function CardListSkeleton({ count = 2 }: { count?: number }) {
+export function CardListSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <View className="flex-col gap-3">
+    <ClinicalCard className="flex-col">
       {Array.from({ length: count }, (_, i) => (
-        <ClinicalCard key={i} className="flex-col gap-3">
-          <View className="flex-row items-center gap-3">
-            <Skeleton className="h-12 w-12 rounded-full" />
-            <View className="flex-1 gap-1.5">
-              <Skeleton className="h-4 w-32 rounded-md" />
-              <Skeleton className="h-3 w-44 rounded-md" />
-            </View>
-            <Skeleton className="h-6 w-20 rounded-full" />
+        <View key={i} className="flex-row items-center gap-3 py-3">
+          <Skeleton className="h-11 w-11 rounded-full" />
+          <View className="flex-1 gap-1.5">
+            <Skeleton className="h-4 w-32 rounded-md" />
+            <Skeleton className="h-3 w-44 rounded-md" />
           </View>
-          <Skeleton className="h-16 w-full rounded-2xl" />
-          <Skeleton className="h-11 w-full rounded-full" />
-        </ClinicalCard>
+          <Skeleton className="h-5 w-14 rounded-full" />
+        </View>
       ))}
-    </View>
+    </ClinicalCard>
   );
 }
 
@@ -262,4 +314,47 @@ export function fmtCountdown(at: Date, now: number): string {
   const text =
     abs < 60 ? `${abs} min` : `${Math.floor(abs / 60)}h${abs % 60 ? ` ${abs % 60}m` : ""}`;
   return mins > 0 ? `in ${text}` : `${text} ago`;
+}
+
+/** One status chip wording for every doctor list. */
+export function visitStatusPill(status: AppointmentStatus): {
+  label: string;
+  tone: "primary" | "neutral" | "warning";
+} {
+  switch (status) {
+    case "requested":
+      return { label: "New request", tone: "warning" };
+    case "needs_reschedule":
+      return { label: "Rebooking", tone: "warning" };
+    case "scheduled":
+      return { label: "Booked", tone: "primary" };
+    case "completed":
+      return { label: "Completed", tone: "primary" };
+    case "declined":
+      return { label: "Declined", tone: "neutral" };
+    default:
+      return { label: "Cancelled", tone: "neutral" };
+  }
+}
+
+/** The date that matters for a visit: booked time, else the requested time, else when it was made. */
+export function visitDate(row: AppointmentRow): Date | null {
+  const iso = row.scheduled_at ?? row.preferred_time ?? row.created_at;
+  if (!iso) return null;
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** "Nov 20, 2026 · 10:30 AM" */
+export function fmtVisitDate(row: AppointmentRow): string {
+  const d = visitDate(row);
+  if (!d) return "No date";
+  return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · ${fmtTime(d)}`;
+}
+
+/** Tablet / landscape width where the doctor lists show the patient beside the list. */
+export const WIDE_BREAKPOINT = 768;
+
+export function useIsWide(): boolean {
+  return useWindowDimensions().width >= WIDE_BREAKPOINT;
 }

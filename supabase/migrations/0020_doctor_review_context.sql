@@ -56,12 +56,17 @@ end $$;
 revoke all on function public.get_patient_latest_result(uuid) from public, anon;
 grant execute on function public.get_patient_latest_result(uuid) to authenticated;
 
--- ── 2. reason-for-visit for request cards (batched) ───────────────────────
-create or replace function public.get_patient_concerns(p_ids uuid[])
+-- ── 2. reason-for-visit + latest verdict for the doctor's lists (batched) ─
+-- Return type may change between revisions of this file, so drop first.
+drop function if exists public.get_patient_concerns(uuid[]);
+
+create function public.get_patient_concerns(p_ids uuid[])
 returns table (
   patient_id uuid,
   main_concerns text,
-  latest_detection text
+  latest_detection text,
+  latest_validation text,
+  latest_doctor_notes text
 )
 language sql
 stable
@@ -71,12 +76,17 @@ as $$
   select
     pid,
     (select sp.main_concerns from public.skin_profile sp where sp.id::text = pid::text),
-    (select r.detection_label
-       from public.results r
-      where r.user_id = pid
-      order by r.created_at desc nulls last
-      limit 1)
+    lr.detection_label,
+    lr.validation_status,
+    lr.doctor_notes
   from unnest(p_ids) as pid
+  left join lateral (
+    select r.detection_label, r.validation_status, r.doctor_notes
+    from public.results r
+    where r.user_id = pid
+    order by r.created_at desc nulls last
+    limit 1
+  ) lr on true
   where exists (
     select 1
     from public.appointments a

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, Modal, Pressable, TextInput, View } from "react-native";
 import { Text } from "@/components/Text";
 import { ChevronDown, ImageOff, TriangleAlert, X } from "lucide-react-native";
@@ -61,9 +61,16 @@ const LOW_CONFIDENCE = 0.6;
  * exam, with a note the patient sees. Reads and writes go through the SECURITY DEFINER RPCs from
  * migrations 0007 / 0020, so nothing here can alter the scores themselves.
  */
-export function DoctorResultValidation({ patientId }: { patientId: string }) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+export function DoctorResultValidation({
+  patientId,
+  defaultOpen = false,
+}: {
+  patientId: string;
+  /** Start expanded and load immediately (the patient screen). */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [loading, setLoading] = useState(defaultOpen);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<PatientResultSummary | null>(null);
@@ -83,6 +90,28 @@ export function DoctorResultValidation({ patientId }: { patientId: string }) {
       setLoading(false);
     }
   };
+
+  // Patient screen: load once on mount (re-runs if a different patient is shown).
+  useEffect(() => {
+    if (!defaultOpen) return;
+    let cancelled = false;
+    getPatientLatestResult(patientId)
+      .then((row) => {
+        if (cancelled) return;
+        setResult(row);
+        setNotes(row?.doctor_notes ?? "");
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Couldn't load the latest scan.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, defaultOpen]);
 
   const toggle = () => {
     const next = !open;
@@ -181,7 +210,7 @@ export function DoctorResultValidation({ patientId }: { patientId: string }) {
                     className="absolute bottom-2 right-2 rounded-full px-2.5 py-1"
                     style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
                   >
-                    <Text className="text-[11px] font-semibold text-white">Tap to enlarge</Text>
+                    <Text className="text-[12px] font-semibold text-white">Tap to enlarge</Text>
                   </View>
                 </Pressable>
               ) : (
@@ -204,7 +233,7 @@ export function DoctorResultValidation({ patientId }: { patientId: string }) {
               {/* The finding, in clinical words */}
               <View>
                 <Text
-                  className="text-[11px] font-bold uppercase"
+                  className="text-[12px] font-bold uppercase"
                   style={{ color: theme.colors.faint, letterSpacing: 0.6 }}
                 >
                   AI finding
@@ -251,9 +280,10 @@ export function DoctorResultValidation({ patientId }: { patientId: string }) {
                   tone="neutral"
                 />
               </View>
-              <Text className="text-[11px] leading-4" style={{ color: theme.colors.muted }}>
-                SkinLens score is the app&apos;s wellness score shown to patients (60% photo model, 40%
-                questionnaire; higher = healthier). It is not a clinical grade such as IGA or GAGS.
+              <Text className="text-[12px] leading-4" style={{ color: theme.colors.muted }}>
+                SkinLens score is the app&apos;s wellness score shown to patients (60% photo model,
+                40% questionnaire; higher = healthier). It is not a clinical grade such as IGA or
+                GAGS.
               </Text>
 
               {result.validation_status !== "pending" && result.validated_at ? (
@@ -283,7 +313,7 @@ export function DoctorResultValidation({ patientId }: { patientId: string }) {
                 }}
               />
 
-              <Text className="text-[11px] leading-4" style={{ color: theme.colors.muted }}>
+              <Text className="text-[12px] leading-4" style={{ color: theme.colors.muted }}>
                 Agree = the detected condition matches what you see. Disagree = it doesn&apos;t, or
                 you need to examine the patient first. The patient sees your choice and note on
                 their scan. This is not a diagnosis, and the AI numbers are never changed.

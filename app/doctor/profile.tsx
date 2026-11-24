@@ -27,7 +27,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FadeItem } from "@/components/FadeItem";
 import { CoachTarget, useTutorial } from "@/components/TutorialCoach";
 import { useCoachScroller } from "@/hooks/useCoachScroller";
-import { InfoCard } from "@/components/Info";
 import LogoutModal from "@/components/LogoutModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 import {
@@ -48,13 +47,7 @@ import {
 } from "@/components/ui";
 import { theme, cardShadow } from "@/lib/theme";
 import { TAB_BAR_CLEARANCE } from "@/lib/tabs-config";
-import {
-  getClinicAppointments,
-  getMyDoctorProfile,
-  isPendingStatus,
-  redeemInviteCode,
-  type DoctorProfile,
-} from "@/lib/db/appointments";
+import { getMyDoctorProfile, redeemInviteCode, type DoctorProfile } from "@/lib/db/appointments";
 import { useNotifications } from "@/hooks/useNotifications";
 import { requestNotificationPermissions } from "@/lib/push-notifications";
 import { supabase } from "@/utils/supabase";
@@ -77,8 +70,6 @@ export default function DoctorProfileScreen() {
   const { settings, updateSettings, refresh: refreshNotifications } = useNotifications();
   const [doctor, setDoctor] = useState<DoctorProfile | null>(null);
   const [email, setEmail] = useState<string>("");
-  const [waiting, setWaiting] = useState(0);
-  const [scheduled, setScheduled] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutModal, setLogoutModal] = useState(false);
@@ -96,11 +87,6 @@ export default function DoctorProfileScreen() {
       setEmail(userData.user?.email ?? "");
       const prof = await getMyDoctorProfile();
       setDoctor(prof);
-      if (prof) {
-        const appts = await getClinicAppointments(prof.clinicId);
-        setWaiting(appts.filter((a) => isPendingStatus(a.status)).length);
-        setScheduled(appts.filter((a) => a.status === "scheduled").length);
-      }
     } catch (err) {
       console.error("[doctor/profile] load failed:", err);
     } finally {
@@ -244,7 +230,7 @@ export default function DoctorProfileScreen() {
             />
           }
         >
-          {/* Header + identity hero (mirrors the patient "My Profile" tab) */}
+          {/* Header + identity hero */}
           <FadeItem index={0}>
             <CoachTarget id="doctor.profile.card" scrollIntoView={scrollIntoView}>
               {loading ? (
@@ -252,7 +238,7 @@ export default function DoctorProfileScreen() {
               ) : (
                 <View className="mt-2">
                   <View className="flex-row items-start justify-between">
-                    <ScreenHeader title="My Profile" subtitle="Your doctor profile" />
+                    <ScreenHeader title="Account" subtitle="Your profile, clinic and settings" />
                     {doctor ? (
                       <Pressable
                         onPress={() => router.push("/(modules)/doctor-edit-profile")}
@@ -314,12 +300,6 @@ export default function DoctorProfileScreen() {
                     <View className="mt-2 self-start">
                       <Pill label={doctor?.specialty ?? "Dermatology"} />
                     </View>
-                    {doctor ? (
-                      <View className="flex-row gap-3 mt-3">
-                        <InfoCard label="Waiting" value={String(waiting)} />
-                        <InfoCard label="Scheduled" value={String(scheduled)} />
-                      </View>
-                    ) : null}
                   </LinearGradient>
                 </View>
               )}

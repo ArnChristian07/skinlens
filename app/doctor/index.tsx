@@ -148,7 +148,7 @@ export default function DoctorToday() {
           >
             <View className="flex-1 pr-3">
               <Text
-                className="text-[11px] font-bold uppercase"
+                className="text-[12px] font-bold uppercase"
                 style={{ color: theme.colors.muted, letterSpacing: 0.8 }}
               >
                 {today.toLocaleDateString("en-US", {
@@ -213,11 +213,11 @@ export default function DoctorToday() {
         {/* Next patient */}
         <FadeItem index={1}>
           <Pressable
-            onPress={goSchedule}
+            onPress={next ? () => board.openPatient(next) : goSchedule}
             accessibilityRole="button"
             accessibilityLabel={
               next
-                ? `${current ? "In session" : "Next patient"}: ${patientDisplayFor(next, patientNames)}. Open schedule.`
+                ? `${current ? "In session" : "Next patient"}: ${patientDisplayFor(next, patientNames)}. Open patient.`
                 : "Open schedule"
             }
             className="mt-5 active:opacity-90"
@@ -230,10 +230,6 @@ export default function DoctorToday() {
             >
               {loading ? (
                 <View className="flex-row items-center gap-3.5">
-                  <View
-                    className="h-14 w-14 rounded-full"
-                    style={{ backgroundColor: HERO_SKELETON }}
-                  />
                   <View className="flex-1 gap-2">
                     <View className="h-3 w-24 rounded" style={{ backgroundColor: HERO_SKELETON }} />
                     <View className="h-5 w-40 rounded" style={{ backgroundColor: HERO_SKELETON }} />
@@ -245,7 +241,6 @@ export default function DoctorToday() {
                   row={next}
                   live={next === current}
                   name={patientDisplayFor(next, patientNames)}
-                  avatarUrl={patientAvatarFor(next, patientAvatars)}
                   now={now}
                 />
               ) : (
@@ -279,7 +274,9 @@ export default function DoctorToday() {
                           todayDone > 0 ? ` · ${todayDone} to mark done` : ""
                         }`}
                 </Text>
-                <Text className="text-xs font-bold text-white">Open schedule</Text>
+                <Text className="text-xs font-bold text-white">
+                  {next ? "Open patient" : "Open schedule"}
+                </Text>
                 <ChevronRight size={14} color="#FFFFFF" />
               </View>
             </LinearGradient>
@@ -374,22 +371,18 @@ export default function DoctorToday() {
                           name={patientDisplayFor(r, patientNames)}
                           avatarUrl={patientAvatarFor(r, patientAvatars)}
                           detail={
-                            [
-                              board.reasonFor(r),
-                              r.status === "needs_reschedule"
-                                ? "Rebooking — choosing a new time"
-                                : t
-                                  ? `Wants ${formatSlotDay(t)} · ${fmtTime(t)}`
-                                  : "Any time",
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")
+                            r.status === "needs_reschedule"
+                              ? "Rebooking — choosing a new time"
+                              : t
+                                ? `Wants ${formatSlotDay(t)} · ${fmtTime(t)}`
+                                : "Any time"
                           }
                           meta={relativeAgo(r.created_at)}
                           metaTone="warning"
                           chevron
                           divider={i > 0 || overdue.length > 0}
-                          onPress={goRequests}
+                          concern={board.reasonFor(r)}
+                          onPress={() => board.openPatient(r)}
                         />
                       );
                     })}
@@ -448,7 +441,8 @@ export default function DoctorToday() {
                         avatarUrl={patientAvatarFor(r, patientAvatars)}
                         now={now}
                         divider={i > 0}
-                        onPress={goSchedule}
+                        concern={board.reasonFor(r)}
+                        onPress={() => board.openPatient(r)}
                       />
                     ))}
                   </ClinicalCard>
@@ -466,27 +460,24 @@ function NextPatient({
   row,
   live,
   name,
-  avatarUrl,
   now,
 }: {
   row: AppointmentRow;
   live: boolean;
   name: string;
-  avatarUrl: string | null;
   now: number;
 }) {
   const t = new Date(at(row));
   const isToday = sameDay(t, new Date(now));
   return (
     <View className="flex-row items-center gap-3.5">
-      <PatientAvatar name={name} url={avatarUrl} size={56} ring="rgba(255,255,255,0.35)" />
       <View className="flex-1">
         <View className="flex-row items-center gap-1.5">
           {live ? (
             <View className="h-2 w-2 rounded-full" style={{ backgroundColor: "#4ADE80" }} />
           ) : null}
           <Text
-            className="text-[11px] font-bold uppercase"
+            className="text-[12px] font-bold uppercase"
             style={{ color: "rgba(255,255,255,0.75)", letterSpacing: 0.8 }}
           >
             {live ? "In session" : "Next patient"}
@@ -553,7 +544,7 @@ function StatTile({
         >
           {value}
         </Text>
-        <Text className="text-[11px] font-semibold" style={{ color: theme.colors.muted }}>
+        <Text className="text-[12px] font-semibold" style={{ color: theme.colors.muted }}>
           {label}
         </Text>
       </ClinicalCard>
@@ -567,6 +558,7 @@ function AgendaRow({
   avatarUrl,
   now,
   divider,
+  concern,
   onPress,
 }: {
   row: AppointmentRow;
@@ -574,6 +566,7 @@ function AgendaRow({
   avatarUrl: string | null;
   now: number;
   divider: boolean;
+  concern?: string | null;
   onPress: () => void;
 }) {
   const t = new Date(at(row));
@@ -602,22 +595,29 @@ function AgendaRow({
         <Text className="text-[13px] font-bold" style={{ color: timeColor }}>
           {fmtTime(t)}
         </Text>
-        <Text className="text-[10px]" style={{ color: theme.colors.faint }}>
+        <Text className="text-[12px]" style={{ color: theme.colors.faint }}>
           {SLOT_MINUTES} min
         </Text>
       </View>
       <View
         style={{ width: 3, alignSelf: "stretch", borderRadius: 2, backgroundColor: barColor }}
       />
-      <PatientAvatar name={name} url={avatarUrl} size={34} />
-      <Text
-        className="text-[14px] font-semibold flex-1"
-        style={{ color: past ? theme.colors.muted : theme.colors.ink }}
-        numberOfLines={1}
-      >
-        {name}
-      </Text>
-      <Text className="text-[11px] font-bold" style={{ color: metaColor }}>
+      <PatientAvatar name={name} url={avatarUrl} size={38} />
+      <View className="flex-1">
+        <Text
+          className="text-[15px] font-semibold"
+          style={{ color: past ? theme.colors.muted : theme.colors.ink }}
+          numberOfLines={1}
+        >
+          {name}
+        </Text>
+        {concern ? (
+          <Text className="text-[13px]" style={{ color: theme.colors.muted }} numberOfLines={1}>
+            {concern}
+          </Text>
+        ) : null}
+      </View>
+      <Text className="text-[12px] font-bold" style={{ color: metaColor }}>
         {live ? "Now" : past ? "Mark done" : fmtCountdown(t, now)}
       </Text>
     </Pressable>

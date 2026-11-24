@@ -3,8 +3,6 @@ import { AppState, Pressable, View } from "react-native";
 import { Text } from "@/components/Text";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { DoctorProfileValidation } from "@/components/DoctorProfileValidation";
-import { DoctorResultValidation } from "@/components/DoctorResultValidation";
 import { DoctorScheduleSheet, fmtSlot } from "@/components/DoctorScheduleSheet";
 import { PatientAvatar } from "@/components/DoctorUi";
 import { ClinicalCard, Pill, UiModal } from "@/components/ui";
@@ -111,8 +109,8 @@ const CONFIRM_COPY: Record<ConfirmKind, { title: string; message: string; label:
 };
 
 /**
- * One appointment for the doctor tabs: who, when, the review panels and the actions its status
- * allows. Booking happens in DoctorScheduleSheet, on the clinic's slot grid.
+ * One appointment on the doctor's patient screen: who, when, why, and the actions its status allows.
+ * (Lists use the compact PatientRow; the review panels live on the patient screen.) Booking happens in DoctorScheduleSheet, on the clinic's slot grid.
  */
 export function DoctorAppointmentCard({
   appointment: a,
@@ -283,20 +281,6 @@ export function DoctorAppointmentCard({
               View skin report
             </Text>
           </Pressable>
-        ) : null}
-
-        {/* Review panels — while the visit is still open */}
-        {active ? (
-          <View className="flex-col gap-2">
-            <Text
-              className="text-[11px] font-bold uppercase"
-              style={{ color: theme.colors.faint, letterSpacing: 0.6 }}
-            >
-              Clinical review{pending ? " — check before booking" : ""}
-            </Text>
-            <DoctorResultValidation patientId={a.patient_id} />
-            <DoctorProfileValidation patientId={a.patient_id} />
-          </View>
         ) : null}
 
         {/* Why the doctor can't (or shouldn't yet) act */}

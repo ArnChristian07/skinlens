@@ -1,12 +1,11 @@
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "expo-router";
 import { RefreshControl, ScrollView, View } from "react-native";
 
 import { Text } from "@/components/Text";
 import { FadeItem } from "@/components/FadeItem";
 import { CoachTarget } from "@/components/TutorialCoach";
 import { useCoachScroller } from "@/hooks/useCoachScroller";
-import { DoctorAppointmentCard } from "@/components/DoctorAppointmentCard";
+import { fmtSlot } from "@/components/DoctorScheduleSheet";
 import { DoctorWeekCalendar, dayKey, sameDay } from "@/components/DoctorWeekCalendar";
 import { CardListSkeleton, PatientRow, SectionHeader, fmtTime } from "@/components/DoctorUi";
 import { StyledSafeAreaView as SafeAreaView } from "@/components/StyledSafeAreaView";
@@ -71,7 +70,6 @@ function buildTimeline(visits: AppointmentRow[], slots: Date[], now: number): En
 export default function DoctorSchedule() {
   const board = useDoctorBoard();
   const { doctor, rows, patientNames, patientAvatars, loading, refreshing, error, refresh } = board;
-  const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const { onScroll, scrollIntoView } = useCoachScroller(scrollRef);
   const now = useNow();
@@ -206,9 +204,22 @@ export default function DoctorSchedule() {
                 <FadeItem index={3}>
                   <View className="flex-col gap-3">
                     <SectionHeader title="Past visits to mark done" count={overdue.length} />
-                    {overdue.map((a) => (
-                      <DoctorAppointmentCard key={a.id} {...board.cardProps(a)} compact />
-                    ))}
+                    <ClinicalCard style={{ paddingVertical: 4 }}>
+                      {overdue.map((a, i) => (
+                        <PatientRow
+                          key={a.id}
+                          name={patientDisplayFor(a, patientNames)}
+                          avatarUrl={patientAvatarFor(a, patientAvatars)}
+                          concern={board.reasonFor(a)}
+                          detail={a.scheduled_at ? fmtSlot(new Date(a.scheduled_at)) : "No time"}
+                          meta="Mark done"
+                          metaTone="warning"
+                          chevron
+                          divider={i > 0}
+                          onPress={() => board.openPatient(a)}
+                        />
+                      ))}
+                    </ClinicalCard>
                   </View>
                 </FadeItem>
               ) : null}
@@ -242,11 +253,24 @@ export default function DoctorSchedule() {
                         }
                       >
                         {e.kind === "visit" ? (
-                          <DoctorAppointmentCard
-                            {...board.cardProps(e.row)}
-                            compact
-                            showTime={false}
-                          />
+                          <ClinicalCard style={{ paddingVertical: 2 }}>
+                            <PatientRow
+                              name={patientDisplayFor(e.row, patientNames)}
+                              avatarUrl={patientAvatarFor(e.row, patientAvatars)}
+                              concern={board.reasonFor(e.row)}
+                              detail={`${SLOT_MINUTES}-min visit`}
+                              meta={
+                                now >= e.at.getTime() + SLOT_MS
+                                  ? "Mark done"
+                                  : now >= e.at.getTime()
+                                    ? "Now"
+                                    : undefined
+                              }
+                              metaTone={now >= e.at.getTime() + SLOT_MS ? "warning" : "primary"}
+                              chevron
+                              onPress={() => board.openPatient(e.row)}
+                            />
+                          </ClinicalCard>
                         ) : (
                           <Text className="text-[13px]" style={{ color: theme.colors.faint }}>
                             Open until {fmtTime(e.end)}
@@ -278,8 +302,10 @@ export default function DoctorSchedule() {
                                   ? fmtTime(t)
                                   : "Any time"
                             }
+                            concern={board.reasonFor(r)}
                             divider={i > 0}
-                            onPress={() => router.navigate("/doctor/requests")}
+                            chevron
+                            onPress={() => board.openPatient(r)}
                           />
                         );
                       })}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
 import { Text } from "@/components/Text";
 import { ChevronDown } from "lucide-react-native";
@@ -63,9 +63,16 @@ function Field({ label, value }: { label: string; value: string }) {
  * confirm it or flag it for follow-up with notes. Goes through the RPCs in migration 0012, which
  * only write the verdict — never the patient's own profile tables.
  */
-export function DoctorProfileValidation({ patientId }: { patientId: string }) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+export function DoctorProfileValidation({
+  patientId,
+  defaultOpen = false,
+}: {
+  patientId: string;
+  /** Start expanded and load immediately (the patient screen). */
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [loading, setLoading] = useState(defaultOpen);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [review, setReview] = useState<PatientProfileReview | null>(null);
@@ -85,6 +92,28 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
       setLoading(false);
     }
   };
+
+  // Patient screen: load once on mount (re-runs if a different patient is shown).
+  useEffect(() => {
+    if (!defaultOpen) return;
+    let cancelled = false;
+    getPatientProfileForReview(patientId)
+      .then((data) => {
+        if (cancelled) return;
+        setReview(data);
+        setNotes(data.validation?.doctor_notes ?? "");
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setError(err instanceof Error ? err.message : "Couldn't load the patient profile.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [patientId, defaultOpen]);
 
   const toggle = () => {
     const next = !open;
@@ -162,7 +191,9 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
 
               {v ? (
                 <Text className="text-xs leading-5" style={{ color: theme.colors.muted }}>
-                  {v.status === "confirmed" ? "Marked as looking right" : "Marked as needing correction"}
+                  {v.status === "confirmed"
+                    ? "Marked as looking right"
+                    : "Marked as needing correction"}
                   {v.validator_name ? ` by ${v.validator_name}` : ""}
                   {v.validated_at ? ` on ${fmtWhen(v.validated_at)}` : ""}.
                   {!v.is_current
@@ -179,7 +210,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                   borderColor: theme.colors.cardBorder,
                 }}
               >
-                <Text className="text-[11px] font-bold mb-1" style={{ color: theme.colors.faint }}>
+                <Text className="text-[12px] font-bold mb-1" style={{ color: theme.colors.faint }}>
                   PERSONAL & SKIN
                 </Text>
                 <Field label="Date of birth" value={p.age || "—"} />
@@ -188,7 +219,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                 <Field label="Main concern" value={show(p.main_concerns)} />
 
                 <Text
-                  className="text-[11px] font-bold mt-2 mb-1"
+                  className="text-[12px] font-bold mt-2 mb-1"
                   style={{ color: theme.colors.faint }}
                 >
                   LIFESTYLE
@@ -198,7 +229,7 @@ export function DoctorProfileValidation({ patientId }: { patientId: string }) {
                 <Field label="Stress level" value={show(p.stress_level)} />
 
                 <Text
-                  className="text-[11px] font-bold mt-2 mb-1"
+                  className="text-[12px] font-bold mt-2 mb-1"
                   style={{ color: theme.colors.faint }}
                 >
                   SENSITIVITY HISTORY ({reactions.length})
